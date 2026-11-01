@@ -1,0 +1,19 @@
+# Configuracion del proyecto
+project:
+  name: "Intelligent Network Analytics"
+  seed: 42
+
+graphics:
+  figsize: [8, 5]
+  style: "dark_background"
+  palette: ["#004D98", "#A50044"]
+  edgecolor: "white"
+  alpha: 1
+  bg_color: "#000000"
+  paper_color: "#000000"
+  font_color: "white"
+
+# Resultados
+output:
+  submission_path: "results/predictions"
+  figures_path: "results/figures"
