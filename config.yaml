@@ -1,14 +1,31 @@
 # Configuracion del proyecto
 project:
   name: "Intelligent Network Analytics"
+  test_size: 0.2
   seed: 42
 
 graphics:
   figsize: [8, 5]
   style: "dark_background"
   palette: ["#004D98", "#A50044"]
+  categorical_palette:
+    - "#004D98"
+    - "#A50044"
+    - "#4C9F70"
+    - "#FFC857"
+    - "#7A68A6"
+    - "#FF7F50"
+    - "#37A2DA"
+    - "#E6B422"
+    - "#00A6A6"
+    - "#D45087"
+    - "#8B6D5C"
+  normal_color: "#4C9F70"
+  anomalous_color: "#A50044"
   edgecolor: "white"
   alpha: 1
+  confidence_alpha: 0.16
+  grid_color: "#344050"
   bg_color: "#000000"
   paper_color: "#000000"
   font_color: "white"
