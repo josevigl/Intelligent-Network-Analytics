@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import numpy as np
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupShuffleSplit, train_test_split
 
 from src.preprocessing.data import TaskDataset
 
@@ -23,6 +23,12 @@ class TaskSplits:
     positions_test: np.ndarray
     feature_channels: tuple[str, ...]
     label_classes: tuple[str, ...] = ()
+    groups_train: np.ndarray | None = None
+    groups_validation: np.ndarray | None = None
+    groups_test: np.ndarray | None = None
+    stratify_groups_train: np.ndarray | None = None
+    stratify_groups_validation: np.ndarray | None = None
+    stratify_groups_test: np.ndarray | None = None
 
 
 def _multilabel_matrix(labels: np.ndarray) -> tuple[np.ndarray, tuple[str, ...]]:
@@ -61,6 +67,62 @@ def _iterative_split(
     return indices[train_positions], indices[holdout_positions]
 
 
+def _group_target_matrix(dataset: TaskDataset) -> np.ndarray:
+    if dataset.task_name == "affected_kpis":
+        return _multilabel_matrix(dataset.y)[0]
+    if dataset.task_name == "temporal_localization":
+        labels = dataset.stratify_groups
+    else:
+        labels = dataset.y
+    if labels is None:
+        raise ValueError("Group-aware splitting requires target labels.")
+    classes, encoded = np.unique(labels, return_inverse=True)
+    matrix = np.zeros((len(labels), len(classes)), dtype=np.int8)
+    matrix[np.arange(len(labels)), encoded] = 1
+    return matrix
+
+
+def _group_holdout(
+    indices: np.ndarray,
+    groups: np.ndarray,
+    target_matrix: np.ndarray,
+    test_size: float,
+    seed: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    unique_groups = np.unique(groups[indices])
+    if len(unique_groups) < 3:
+        raise ValueError(
+            "At least three independent time-overlap groups are required for "
+            "train/validation/test splitting."
+        )
+
+    best: tuple[np.ndarray, np.ndarray] | None = None
+    best_score = float("inf")
+    for offset in range(64):
+        splitter = GroupShuffleSplit(
+            n_splits=1,
+            test_size=test_size,
+            random_state=seed + offset,
+        )
+        train_local, holdout_local = next(
+            splitter.split(indices, groups=groups[indices])
+        )
+        train_indices = indices[train_local]
+        holdout_indices = indices[holdout_local]
+        observed_size = len(holdout_indices) / len(indices)
+        target_error = np.abs(
+            target_matrix[holdout_indices].mean(axis=0)
+            - target_matrix[indices].mean(axis=0)
+        ).mean()
+        score = abs(observed_size - test_size) + 2.0 * target_error
+        if score < best_score:
+            best = (train_indices, holdout_indices)
+            best_score = score
+    if best is None:
+        raise RuntimeError("Unable to create a group-aware holdout split.")
+    return best
+
+
 def _split_indices(
     dataset: TaskDataset,
     test_size: float,
@@ -77,7 +139,26 @@ def _split_indices(
     indices = np.arange(len(dataset), dtype=np.int64)
     label_classes: tuple[str, ...] = ()
 
-    if dataset.task_name == "affected_kpis":
+    if dataset.groups is not None:
+        target_matrix = _group_target_matrix(dataset)
+        train_validation, test = _group_holdout(
+            indices,
+            dataset.groups,
+            target_matrix,
+            test_size,
+            seed,
+        )
+        validation_fraction = validation_size / (1 - test_size)
+        train, validation = _group_holdout(
+            train_validation,
+            dataset.groups,
+            target_matrix,
+            validation_fraction,
+            seed + 64,
+        )
+        if dataset.task_name == "affected_kpis":
+            label_classes = _multilabel_matrix(dataset.y)[1]
+    elif dataset.task_name == "affected_kpis":
         multilabel_targets, label_classes = _multilabel_matrix(dataset.y)
         train_validation, test = _iterative_split(
             indices, multilabel_targets, test_size, seed
@@ -156,4 +237,24 @@ def split_task_dataset(
         positions_test=dataset.positions[test],
         feature_channels=dataset.feature_channels,
         label_classes=label_classes,
+        groups_train=dataset.groups[train] if dataset.groups is not None else None,
+        groups_validation=(
+            dataset.groups[validation] if dataset.groups is not None else None
+        ),
+        groups_test=dataset.groups[test] if dataset.groups is not None else None,
+        stratify_groups_train=(
+            dataset.stratify_groups[train]
+            if dataset.stratify_groups is not None
+            else None
+        ),
+        stratify_groups_validation=(
+            dataset.stratify_groups[validation]
+            if dataset.stratify_groups is not None
+            else None
+        ),
+        stratify_groups_test=(
+            dataset.stratify_groups[test]
+            if dataset.stratify_groups is not None
+            else None
+        ),
     )

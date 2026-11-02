@@ -18,12 +18,20 @@ dependencies = [
 
 [project.optional-dependencies]
 data = ["datasets>=2.14"]
+models = ["xgboost>=2.0"]
+notebooks = [
+    "ipykernel>=6.0",
+    "jupyter>=1.0",
+    "matplotlib>=3.7",
+    "seaborn>=0.13",
+]
 mlrun = ["mlrun"]
 test = ["pytest>=7.0"]
 
 [project.scripts]
 ina-train = "pipelines.train:main"
 ina-infer = "pipelines.inference:main"
+ina-train-models = "pipelines.train_models:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

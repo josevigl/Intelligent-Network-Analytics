@@ -5,6 +5,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
 from src.artifacts import TaskModelArtifact, load_task_artifact
 from src.models.training import summarize_windows
@@ -45,7 +46,40 @@ def predict_task_component(
     else:
         raise ValueError(f"Unknown model input mode: {artifact.input_mode!r}.")
 
-    predictions = artifact.model.predict(model_input)
+    decision_thresholds = getattr(artifact, "decision_thresholds", ())
+    if artifact.task_name == "anomaly_type":
+        predictions = artifact.model.predict(model_input)
+        if isinstance(artifact.target_encoder, LabelEncoder):
+            predictions = artifact.target_encoder.inverse_transform(
+                np.asarray(predictions, dtype=np.int64)
+            )
+    elif decision_thresholds and artifact.task_name in {
+        "binary_detection",
+        "temporal_localization",
+        "affected_kpis",
+    }:
+        probabilities = artifact.model.predict_proba(model_input)
+        if isinstance(probabilities, list):
+            probabilities = np.column_stack(
+                [
+                    values[:, 1] if values.ndim == 2 else values
+                    for values in probabilities
+                ]
+            )
+        probabilities = np.asarray(probabilities)
+        if artifact.task_name in {"binary_detection", "temporal_localization"}:
+            if probabilities.ndim == 2:
+                probabilities = probabilities[:, 1]
+            predictions = (
+                probabilities >= decision_thresholds[0]
+            ).astype(np.int64)
+        else:
+            predictions = (
+                probabilities
+                >= np.asarray(decision_thresholds, dtype=np.float64)
+            ).astype(np.int8)
+    else:
+        predictions = artifact.model.predict(model_input)
     if artifact.task_name == "temporal_localization":
         predictions = predictions.reshape(len(windows), artifact.sequence_length)
     elif artifact.task_name == "affected_kpis":

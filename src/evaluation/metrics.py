@@ -20,10 +20,16 @@ def summarize_task_metrics(
             "f1_micro": float(
                 f1_score(y_true, y_pred, average="micro", zero_division=0)
             ),
+            "f1_weighted": float(
+                f1_score(y_true, y_pred, average="weighted", zero_division=0)
+            ),
             "exact_match": float(np.mean(np.all(y_true == y_pred, axis=1))),
         }
     return {
         "accuracy": float(accuracy_score(y_true, y_pred)),
+        "f1_micro": float(
+            f1_score(y_true, y_pred, average="micro", zero_division=0)
+        ),
         "f1_macro": float(
             f1_score(y_true, y_pred, average="macro", zero_division=0)
         ),

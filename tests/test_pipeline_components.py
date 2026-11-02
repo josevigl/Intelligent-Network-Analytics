@@ -16,9 +16,14 @@ from src.artifacts import (
 from src.config import load_pipeline_config
 from src.inference import predict_task_component
 from src.models.training import summarize_windows, train_model_component
-from src.preprocessing.pipeline import preprocess_task_component
+from src.preprocessing.pipeline import (
+    prepare_task_data_component,
+    preprocess_task_component,
+)
 from src.preprocessing.splitting import TaskSplits
 from pipelines.train import run_training_pipeline
+from src.models.experiments import run_task_model_comparison
+from pipelines.train_models import run_model_comparison_pipeline
 
 
 class PipelineComponentTests(unittest.TestCase):
@@ -193,6 +198,241 @@ class PipelineComponentTests(unittest.TestCase):
                     ("RSRP",),
                 )
                 self.assertTrue(result["validation_metrics"])
+
+    def test_group_split_has_no_time_overlap_between_partitions(self) -> None:
+        rows = []
+        base_time = pd.Timestamp("2025-01-01T00:00:00")
+        for index in range(60):
+            anomalous = index % 2 == 0
+            rows.append(
+                {
+                    "start_time": base_time
+                    + pd.Timedelta(seconds=(index // 2) * 50 + (index % 2) * 10),
+                    "end_time": base_time
+                    + pd.Timedelta(seconds=(index // 2) * 50 + (index % 2) * 10 + 12),
+                    "KPIs": {"RSRP": [float(index)] * 4},
+                    "anomalies": (
+                        {
+                            "exists": True,
+                            "type": "type_1",
+                            "anomaly_duration": {"start": 1, "end": 2},
+                            "affected_kpis": ["RSRP"],
+                        }
+                        if anomalous
+                        else {"exists": False}
+                    ),
+                }
+            )
+        frame = pd.DataFrame(rows)
+        config = load_pipeline_config()
+        config["preprocessing"]["sequence_length"] = 4
+        config["preprocessing"]["selected_kpis"]["binary_detection"] = ["RSRP"]
+        splits = prepare_task_data_component(frame, "binary_detection", config)
+
+        self.assertIsNotNone(splits.groups_train)
+        self.assertFalse(
+            set(splits.groups_train) & set(splits.groups_validation)
+        )
+        self.assertFalse(set(splits.groups_train) & set(splits.groups_test))
+        self.assertFalse(
+            set(splits.groups_validation) & set(splits.groups_test)
+        )
+        self.assertTrue(len(np.unique(splits.groups_train)) < len(splits.y_train))
+
+    def test_training_entrypoint_writes_comparison_results(self) -> None:
+        rows = []
+        base_time = pd.Timestamp("2025-01-01T00:00:00")
+        for index in range(60):
+            signal = float(index % 2) * 5 + index / 100
+            rows.append(
+                {
+                    "start_time": base_time + pd.Timedelta(seconds=index * 20),
+                    "end_time": base_time
+                    + pd.Timedelta(seconds=index * 20 + 12),
+                    "KPIs": {"RSRP": [signal, signal + 1, signal + 2, signal + 3]},
+                    "anomalies": {"exists": bool(index % 2)},
+                }
+            )
+        project_config = load_pipeline_config()
+        project_config["preprocessing"]["sequence_length"] = 4
+        project_config["preprocessing"]["selected_kpis"]["binary_detection"] = [
+            "RSRP"
+        ]
+        model_config = {
+            "cross_validation": {"folds": 2, "shuffle_seed": 42},
+            "selection": {"primary_metric": "f1_macro"},
+            "models": {
+                "binary_detection": {
+                    "logistic_regression": {
+                        "estimator": "logistic_regression",
+                        "parameter_grid": {
+                            "C": [1.0],
+                            "class_weight": ["balanced"],
+                        },
+                    }
+                }
+            },
+        }
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            results = run_model_comparison_pipeline(
+                pd.DataFrame(rows),
+                project_config,
+                model_config,
+                temporary_directory,
+                ["binary_detection"],
+            )
+            comparison_path = Path(temporary_directory) / "comparison.csv"
+
+            self.assertTrue(comparison_path.is_file())
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0]["task_name"], "binary_detection")
+            self.assertTrue(results[0]["group_split"])
+
+    def test_cv_model_selection_saves_test_metrics_only_for_selected_model(self) -> None:
+        def make_task_splits(task_name: str) -> TaskSplits:
+            n_train, n_holdout = 24, 8
+            train_X = np.empty((n_train, 4, 1), dtype=object)
+            holdout_X = np.empty((n_holdout, 4, 1), dtype=object)
+            for index in range(n_train):
+                signal = float(index % 2) * 4 + index / 100
+                train_X[index, :, 0] = [signal, signal + 1, signal + 2, signal + 3]
+            for index in range(n_holdout):
+                signal = float(index % 2) * 4 + index / 100
+                holdout_X[index, :, 0] = [signal, signal + 1, signal + 2, signal + 3]
+            y_train = np.asarray([index % 2 for index in range(n_train)])
+            y_holdout = np.asarray([index % 2 for index in range(n_holdout)])
+            if task_name == "anomaly_type":
+                y_train = np.asarray(
+                    [f"type_{index % 3}" for index in range(n_train)]
+                )
+                y_holdout = np.asarray(
+                    [f"type_{index % 3}" for index in range(n_holdout)]
+                )
+            elif task_name == "temporal_localization":
+                y_train = np.tile(np.array([0, 0, 1, 1]), (n_train, 1))
+                y_holdout = np.tile(np.array([0, 0, 1, 1]), (n_holdout, 1))
+            elif task_name == "affected_kpis":
+                labels = [("RSRP",), ("DL_MCS",), ("RSRP", "DL_MCS")]
+                y_train = np.empty(n_train, dtype=object)
+                y_holdout = np.empty(n_holdout, dtype=object)
+                y_train[:] = [labels[index % 3] for index in range(n_train)]
+                y_holdout[:] = [labels[index % 3] for index in range(n_holdout)]
+            return TaskSplits(
+                task_name=task_name,
+                X_train=train_X,
+                y_train=y_train,
+                positions_train=np.arange(n_train),
+                X_validation=holdout_X,
+                y_validation=y_holdout,
+                positions_validation=np.arange(n_train, n_train + n_holdout),
+                X_test=holdout_X.copy(),
+                y_test=y_holdout.copy(),
+                positions_test=np.arange(n_train + n_holdout, n_train + 2 * n_holdout),
+                feature_channels=("RSRP",),
+                groups_train=np.arange(n_train),
+                groups_validation=np.arange(n_train, n_train + n_holdout),
+                groups_test=np.arange(n_train + n_holdout, n_train + 2 * n_holdout),
+                stratify_groups_train=(
+                    np.asarray([f"type_{i % 3}" for i in range(n_train)])
+                    if task_name == "temporal_localization"
+                    else None
+                ),
+            )
+
+        project_config = load_pipeline_config()
+        project_config["training"]["random_forest"][
+            "max_temporal_training_timesteps"
+        ] = 100
+        model_config = {
+            "cross_validation": {"folds": 2, "shuffle_seed": 42},
+            "selection": {"primary_metric": "f1_macro"},
+            "models": {},
+        }
+        algorithm_mapping = {
+            "binary_detection": ["logistic_regression", "random_forest", "xgboost"],
+            "anomaly_type": ["logistic_regression", "random_forest", "svm", "xgboost"],
+            "temporal_localization": [
+                "logistic_regression",
+                "random_forest",
+                "xgboost",
+            ],
+            "affected_kpis": [
+                "one_vs_rest_logistic_regression",
+                "random_forest",
+                "classifier_chain",
+            ],
+        }
+        estimator_mapping = {
+            "one_vs_rest_logistic_regression": "one_vs_rest_logistic_regression",
+            "classifier_chain": "classifier_chain",
+        }
+        for task_name, algorithms in algorithm_mapping.items():
+            model_config["models"][task_name] = {}
+            for algorithm in algorithms:
+                estimator = estimator_mapping.get(algorithm, algorithm)
+                if estimator == "logistic_regression" and algorithm.startswith(
+                    "one_vs_rest"
+                ):
+                    estimator = "one_vs_rest_logistic_regression"
+                parameters = (
+                    {"n_estimators": [3], "max_depth": [3]}
+                    if estimator in {"random_forest", "xgboost"}
+                    else {"C": [1.0], "class_weight": ["balanced"]}
+                )
+                if estimator == "xgboost":
+                    parameters["learning_rate"] = [0.2]
+                if estimator == "svm":
+                    parameters = {
+                        "C": [1.0],
+                        "kernel": ["linear"],
+                        "class_weight": ["balanced"],
+                    }
+                model_config["models"][task_name][algorithm] = {
+                    "estimator": estimator,
+                    "parameter_grid": parameters,
+                }
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            for task_name in algorithm_mapping:
+                result = run_task_model_comparison(
+                    task_name,
+                    make_task_splits(task_name),
+                    project_config,
+                    model_config,
+                    temporary_directory,
+                )
+                self.assertEqual(len(result["models"]), len(algorithm_mapping[task_name]))
+                self.assertEqual(
+                    sum(model["selected"] for model in result["models"]), 1
+                )
+                self.assertTrue(result["test_metrics"])
+                self.assertTrue(
+                    all(
+                        model["test_metrics"] is None
+                        for model in result["models"]
+                        if not model["selected"]
+                    )
+                )
+                if task_name == "binary_detection":
+                    selected_result = next(
+                        model for model in result["models"] if model["selected"]
+                    )
+                    artifact = load_task_artifact(
+                        selected_result["artifact_path"]
+                    )
+                    inference_frame = pd.DataFrame(
+                        {
+                            "KPIs": [
+                                {"RSRP": [0.0, 1.0, 2.0, 3.0]},
+                                {"RSRP": [4.0, 5.0, 6.0, 7.0]},
+                            ]
+                        }
+                    )
+                    predictions = predict_task_component(
+                        inference_frame, artifact
+                    )
+                    self.assertEqual(predictions.predictions.shape, (2,))
+                    self.assertTrue(artifact.decision_thresholds)
 
 
 if __name__ == "__main__":

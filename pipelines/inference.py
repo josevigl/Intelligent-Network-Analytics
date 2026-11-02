@@ -12,7 +12,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--artifact", type=Path, required=True)
     parser.add_argument("--dataset", default="AliMaatouk/TelecomTS")
-    parser.add_argument("--split", default="test")
+    parser.add_argument("--split", default="train")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 

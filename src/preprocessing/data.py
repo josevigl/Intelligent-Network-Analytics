@@ -86,6 +86,7 @@ class TaskDataset:
     y: np.ndarray
     positions: np.ndarray
     stratify_groups: np.ndarray | None = None
+    groups: np.ndarray | None = None
 
     def __len__(self) -> int:
         return len(self.y)
@@ -157,6 +158,38 @@ def _affected_labels(annotation: dict[str, Any]) -> tuple[str, ...]:
     return tuple(sorted(labels))
 
 
+def _overlapping_time_groups(frame: pd.DataFrame) -> np.ndarray | None:
+    if not {"start_time", "end_time"}.issubset(frame.columns):
+        return None
+
+    starts = pd.to_datetime(frame["start_time"], errors="coerce", utc=True)
+    ends = pd.to_datetime(frame["end_time"], errors="coerce", utc=True)
+    if starts.isna().any() or ends.isna().any():
+        raise ValueError(
+            "start_time and end_time must contain valid timestamps to build "
+            "leakage-resistant groups."
+        )
+    if (ends < starts).any():
+        raise ValueError("An end_time precedes its start_time.")
+
+    start_values = starts.astype("int64").to_numpy()
+    end_values = ends.astype("int64").to_numpy()
+    sorted_positions = np.argsort(start_values, kind="stable")
+    group_ids = np.empty(len(frame), dtype=np.int64)
+    current_group = -1
+    active_end = -1
+    for position in sorted_positions:
+        start = start_values[position]
+        end = end_values[position]
+        if current_group < 0 or start > active_end:
+            current_group += 1
+            active_end = end
+        else:
+            active_end = max(active_end, end)
+        group_ids[position] = current_group
+    return group_ids
+
+
 def _target_for_task(
     task_name: str, annotation: dict[str, Any], sequence_length: int
 ) -> Any | None:
@@ -213,6 +246,7 @@ def build_task_dataset(
     targets: list[Any] = []
     positions: list[int] = []
     stratify_groups: list[str] = []
+    interval_groups = _overlapping_time_groups(frame)
 
     for position, (_, row) in enumerate(frame.iterrows()):
         kpis = row.get("KPIs")
@@ -287,6 +321,11 @@ def build_task_dataset(
         y=y,
         positions=np.asarray(positions, dtype=np.int64),
         stratify_groups=groups,
+        groups=(
+            interval_groups[np.asarray(positions, dtype=np.int64)]
+            if interval_groups is not None
+            else None
+        ),
     )
 
 

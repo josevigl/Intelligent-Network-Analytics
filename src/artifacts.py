@@ -36,6 +36,12 @@ class TaskModelArtifact:
     config: dict[str, Any]
     validation_metrics: dict[str, float]
     library_versions: dict[str, str]
+    model_name: str = "random_forest"
+    model_parameters: dict[str, Any] | None = None
+    decision_thresholds: tuple[float, ...] = ()
+    cv_metrics: dict[str, float] | None = None
+    test_metrics: dict[str, float] | None = None
+    selected: bool = False
 
 
 def build_task_artifact(
