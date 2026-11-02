@@ -1,0 +1,91 @@
+cross_validation:
+  folds: 5
+  shuffle_seed: 42
+
+selection:
+  primary_metric: f1_macro
+  threshold_objective: f1
+  threshold_fallback: 0.5
+
+models:
+  binary_detection:
+    logistic_regression:
+      estimator: logistic_regression
+      parameter_grid:
+        C: [0.1, 1.0, 10.0]
+        class_weight: [balanced]
+    random_forest:
+      estimator: random_forest
+      parameter_grid:
+        n_estimators: [100]
+        max_depth: [12, null]
+        min_samples_leaf: [2]
+    xgboost:
+      estimator: xgboost
+      parameter_grid:
+        n_estimators: [150]
+        max_depth: [4, 7]
+        learning_rate: [0.05]
+
+  anomaly_type:
+    logistic_regression:
+      estimator: logistic_regression
+      parameter_grid:
+        C: [0.1, 1.0, 10.0]
+        class_weight: [balanced]
+    random_forest:
+      estimator: random_forest
+      parameter_grid:
+        n_estimators: [100]
+        max_depth: [12, null]
+        min_samples_leaf: [2]
+    svm:
+      estimator: svm
+      parameter_grid:
+        C: [0.5, 2.0]
+        kernel: [rbf]
+        class_weight: [balanced]
+    xgboost:
+      estimator: xgboost
+      parameter_grid:
+        n_estimators: [150]
+        max_depth: [4, 7]
+        learning_rate: [0.05]
+
+  temporal_localization:
+    logistic_regression:
+      estimator: logistic_regression
+      parameter_grid:
+        C: [0.1, 1.0, 10.0]
+        class_weight: [balanced]
+    random_forest:
+      estimator: random_forest
+      parameter_grid:
+        n_estimators: [100]
+        max_depth: [12, null]
+        min_samples_leaf: [2]
+    xgboost:
+      estimator: xgboost
+      parameter_grid:
+        n_estimators: [150]
+        max_depth: [4, 7]
+        learning_rate: [0.05]
+
+  affected_kpis:
+    one_vs_rest_logistic_regression:
+      estimator: one_vs_rest_logistic_regression
+      parameter_grid:
+        C: [0.1, 1.0, 10.0]
+        class_weight: [balanced]
+    random_forest:
+      estimator: random_forest
+      parameter_grid:
+        n_estimators: [100]
+        max_depth: [12, null]
+        min_samples_leaf: [2]
+    classifier_chain:
+      estimator: classifier_chain
+      parameter_grid:
+        C: [0.1, 1.0, 10.0]
+        class_weight: [balanced]
+
