@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 import yaml
 import numpy as np
 import pandas as pd
@@ -854,6 +854,40 @@ def summarize_kpi_training_data(X, feature_names):
     summary.index = feature_names
     summary.index.name = "feature"
     return summary
+
+
+def get_kpi_feature_indices(feature_names, kpi_channels):
+    """Map selected KPI channels to their encoded tensor feature positions."""
+    available_channels = set(KPI_COLUMNS)
+    selected_channels = list(dict.fromkeys(kpi_channels))
+    unknown_channels = set(selected_channels) - available_channels
+    if unknown_channels:
+        raise ValueError(
+            f"Unknown KPI channels: {sorted(unknown_channels)}"
+        )
+
+    indices = [
+        index
+        for index, feature in enumerate(feature_names)
+        if any(
+            feature == channel or feature.startswith(f"{channel}_")
+            for channel in selected_channels
+        )
+    ]
+    missing_channels = [
+        channel
+        for channel in selected_channels
+        if not any(
+            feature == channel or feature.startswith(f"{channel}_")
+            for feature in feature_names
+        )
+    ]
+    if missing_channels:
+        raise ValueError(
+            f"Selected KPI channels are missing from the feature tensor: "
+            f"{missing_channels}"
+        )
+    return np.asarray(indices, dtype=np.int64)
 
 
 def plot_class_distribution(y, graphics, title, class_names=None):
