@@ -34,3 +34,54 @@ graphics:
 output:
   submission_path: "results/predictions"
   figures_path: "results/figures"
+  model_artifacts_path: "results/models"
+
+training:
+  validation_size: 0.1
+  max_parallel_tasks: 1
+  random_forest:
+    n_estimators: 100
+    max_depth: 14
+    min_samples_leaf: 2
+    max_temporal_training_timesteps: 150000
+
+preprocessing:
+  sequence_length: 128
+  categorical_missing_value: "__MISSING__"
+  selected_kpis:
+    binary_detection:
+      - RSRP
+      - UL_SNR
+      - UL_BLER
+      - DL_BLER
+      - RX_Bytes
+    anomaly_type:
+      - RSRP
+      - UL_SNR
+      - DL_MCS
+      - UL_NPRB
+      - PRBs_DL_Current
+      - DL_BLER
+      - UL_NumberOfPackets
+      - Estimated_UL_Buffer
+      - PRB_Utilization_UL
+    temporal_localization:
+      - RSRP
+      - TX_Bytes
+      - UL_NPRB
+      - DL_BLER
+      - UL_SNR
+      - RX_Bytes
+      - PRB_Utilization_DL
+      - DL_MCS
+      - UL_NumberOfPackets
+      - Estimated_UL_Buffer
+      - UL_BLER
+    affected_kpis:
+      - RSRP
+      - DL_MCS
+      - DL_Protocol
+      - UL_SNR
+      - UL_MCS
+      - UL_NumberOfPackets
+      - PRB_Utilization_UL
