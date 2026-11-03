@@ -1,0 +1,304 @@
+{
+  "task_name": "binary_detection",
+  "primary_metric": "f1_macro",
+  "group_split": true,
+  "grouping_strategy": "overlapping_time_intervals",
+  "cross_validation_folds": 5,
+  "sample_counts": {
+    "train": 22318,
+    "validation": 3123,
+    "test": 6559
+  },
+  "group_count": 105,
+  "cv_candidate_results": [
+    {
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 0.1,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.6995775373651816,
+        "f1_macro_mean": 0.48964794367476605,
+        "f1_micro_mean": 0.6995775373651816,
+        "f1_weighted_mean": 0.776942831017333,
+        "precision_macro_mean": 0.5451879994952711,
+        "recall_macro_mean": 0.7004874551821424,
+        "accuracy_std": 0.1771952238039751,
+        "f1_macro_std": 0.09346591153134488,
+        "f1_micro_std": 0.1771952238039751,
+        "f1_weighted_std": 0.13872200543357502,
+        "precision_macro_std": 0.023102326063203973,
+        "recall_macro_std": 0.08158139313685832
+      }
+    },
+    {
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 1.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.6810435131707183,
+        "f1_macro_mean": 0.47909339352459906,
+        "f1_micro_mean": 0.6810435131707183,
+        "f1_weighted_mean": 0.7613232777006549,
+        "precision_macro_mean": 0.5433762349987746,
+        "recall_macro_mean": 0.6936421540168429,
+        "accuracy_std": 0.18959318695330457,
+        "f1_macro_std": 0.09908587243013578,
+        "f1_micro_std": 0.18959318695330457,
+        "f1_weighted_std": 0.14833341870976985,
+        "precision_macro_std": 0.02245420638529398,
+        "recall_macro_std": 0.08364383236576528
+      }
+    },
+    {
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 10.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.6783730960267598,
+        "f1_macro_mean": 0.4772134958531204,
+        "f1_micro_mean": 0.6783730960267598,
+        "f1_weighted_mean": 0.7587387164148248,
+        "precision_macro_mean": 0.542904156199955,
+        "recall_macro_mean": 0.6905629891305037,
+        "accuracy_std": 0.1929026831948916,
+        "f1_macro_std": 0.10070520270626478,
+        "f1_micro_std": 0.1929026831948916,
+        "f1_weighted_std": 0.15119991901724142,
+        "precision_macro_std": 0.022313913863618418,
+        "recall_macro_std": 0.08376659992665783
+      }
+    },
+    {
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.9477473569878898,
+        "f1_macro_mean": 0.8373450558486271,
+        "f1_micro_mean": 0.9477473569878898,
+        "f1_weighted_mean": 0.9597840581333654,
+        "precision_macro_mean": 0.8335072810649189,
+        "recall_macro_mean": 0.8897390997536693,
+        "accuracy_std": 0.0759906758208968,
+        "f1_macro_std": 0.14444708723578953,
+        "f1_micro_std": 0.0759906758208968,
+        "f1_weighted_std": 0.05325741018266356,
+        "precision_macro_std": 0.15406742669443677,
+        "recall_macro_std": 0.06510932807765435
+      }
+    },
+    {
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.9615048773935237,
+        "f1_macro_mean": 0.8537228278893807,
+        "f1_micro_mean": 0.9615048773935237,
+        "f1_weighted_mean": 0.9687309266893621,
+        "precision_macro_mean": 0.8544596777556512,
+        "recall_macro_mean": 0.8873343197344251,
+        "accuracy_std": 0.05096029987256094,
+        "f1_macro_std": 0.1245006655775732,
+        "f1_micro_std": 0.05096029987256094,
+        "f1_weighted_std": 0.03725645116345364,
+        "precision_macro_std": 0.14653146418124324,
+        "recall_macro_std": 0.04929649977361558
+      }
+    },
+    {
+      "model_name": "xgboost",
+      "estimator": "xgboost",
+      "parameters": {
+        "learning_rate": 0.05,
+        "max_depth": 4,
+        "n_estimators": 150
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.9419098301756057,
+        "f1_macro_mean": 0.8003271479045466,
+        "f1_micro_mean": 0.9419098301756057,
+        "f1_weighted_mean": 0.954298704686285,
+        "precision_macro_mean": 0.804066834360101,
+        "recall_macro_mean": 0.8546725288597802,
+        "accuracy_std": 0.05742628116504947,
+        "f1_macro_std": 0.14489876623045958,
+        "f1_micro_std": 0.05742628116504947,
+        "f1_weighted_std": 0.04202809067843411,
+        "precision_macro_std": 0.1736194599821576,
+        "recall_macro_std": 0.0531593680042507
+      }
+    },
+    {
+      "model_name": "xgboost",
+      "estimator": "xgboost",
+      "parameters": {
+        "learning_rate": 0.05,
+        "max_depth": 7,
+        "n_estimators": 150
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.9306811595854457,
+        "f1_macro_mean": 0.7632320779202514,
+        "f1_micro_mean": 0.9306811595854457,
+        "f1_weighted_mean": 0.9458466874271025,
+        "precision_macro_mean": 0.7915848285880166,
+        "recall_macro_mean": 0.8128068204362933,
+        "accuracy_std": 0.07048102116333305,
+        "f1_macro_std": 0.14602582607164694,
+        "f1_micro_std": 0.07048102116333305,
+        "f1_weighted_std": 0.04952329862390539,
+        "precision_macro_std": 0.17541336148706163,
+        "recall_macro_std": 0.08177686368674167
+      }
+    }
+  ],
+  "models": [
+    {
+      "task_name": "binary_detection",
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 0.1,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.6995775373651816,
+        "f1_macro_mean": 0.48964794367476605,
+        "f1_micro_mean": 0.6995775373651816,
+        "f1_weighted_mean": 0.776942831017333,
+        "precision_macro_mean": 0.5451879994952711,
+        "recall_macro_mean": 0.7004874551821424,
+        "accuracy_std": 0.1771952238039751,
+        "f1_macro_std": 0.09346591153134488,
+        "f1_micro_std": 0.1771952238039751,
+        "f1_weighted_std": 0.13872200543357502,
+        "precision_macro_std": 0.023102326063203973,
+        "recall_macro_std": 0.08158139313685832
+      },
+      "validation_metrics": {
+        "accuracy": 0.9862311879602946,
+        "precision_macro": 0.9542964654785082,
+        "recall_macro": 0.8449895081631609,
+        "f1_micro": 0.9862311879602946,
+        "f1_macro": 0.891562937811136,
+        "f1_weighted": 0.9852903451726572
+      },
+      "test_metrics": null,
+      "decision_thresholds": [
+        0.9024257659912109
+      ],
+      "selected": false,
+      "artifact_path": "results\\models\\binary_detection\\logistic_regression\\model_bundle.joblib"
+    },
+    {
+      "task_name": "binary_detection",
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.9615048773935237,
+        "f1_macro_mean": 0.8537228278893807,
+        "f1_micro_mean": 0.9615048773935237,
+        "f1_weighted_mean": 0.9687309266893621,
+        "precision_macro_mean": 0.8544596777556512,
+        "recall_macro_mean": 0.8873343197344251,
+        "accuracy_std": 0.05096029987256094,
+        "f1_macro_std": 0.1245006655775732,
+        "f1_micro_std": 0.05096029987256094,
+        "f1_weighted_std": 0.03725645116345364,
+        "precision_macro_std": 0.14653146418124324,
+        "recall_macro_std": 0.04929649977361558
+      },
+      "validation_metrics": {
+        "accuracy": 0.9916746717899456,
+        "precision_macro": 0.9761604136604136,
+        "recall_macro": 0.9053175699882287,
+        "f1_micro": 0.9916746717899456,
+        "f1_macro": 0.9376589275843008,
+        "f1_weighted": 0.9913402089775267
+      },
+      "test_metrics": {
+        "accuracy": 0.9835340753163592,
+        "precision_macro": 0.9799587962238565,
+        "recall_macro": 0.8056522347727267,
+        "f1_micro": 0.9835340753163592,
+        "f1_macro": 0.8718887855213414,
+        "f1_weighted": 0.9817106996868473
+      },
+      "decision_thresholds": [
+        0.6764883197298056
+      ],
+      "selected": true,
+      "artifact_path": "results\\models\\binary_detection\\random_forest\\model_bundle.joblib"
+    },
+    {
+      "task_name": "binary_detection",
+      "model_name": "xgboost",
+      "estimator": "xgboost",
+      "parameters": {
+        "learning_rate": 0.05,
+        "max_depth": 4,
+        "n_estimators": 150
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.9419098301756057,
+        "f1_macro_mean": 0.8003271479045466,
+        "f1_micro_mean": 0.9419098301756057,
+        "f1_weighted_mean": 0.954298704686285,
+        "precision_macro_mean": 0.804066834360101,
+        "recall_macro_mean": 0.8546725288597802,
+        "accuracy_std": 0.05742628116504947,
+        "f1_macro_std": 0.14489876623045958,
+        "f1_micro_std": 0.05742628116504947,
+        "f1_weighted_std": 0.04202809067843411,
+        "precision_macro_std": 0.1736194599821576,
+        "recall_macro_std": 0.0531593680042507
+      },
+      "validation_metrics": {
+        "accuracy": 0.9903938520653218,
+        "precision_macro": 0.974654105541264,
+        "recall_macro": 0.8882235528942115,
+        "f1_micro": 0.9903938520653218,
+        "f1_macro": 0.9267593698601009,
+        "f1_weighted": 0.989912931897505
+      },
+      "test_metrics": null,
+      "decision_thresholds": [
+        0.9314241409301758
+      ],
+      "selected": false,
+      "artifact_path": "results\\models\\binary_detection\\xgboost\\model_bundle.joblib"
+    }
+  ],
+  "selected_model": "random_forest",
+  "test_metrics": {
+    "accuracy": 0.9835340753163592,
+    "precision_macro": 0.9799587962238565,
+    "recall_macro": 0.8056522347727267,
+    "f1_micro": 0.9835340753163592,
+    "f1_macro": 0.8718887855213414,
+    "f1_weighted": 0.9817106996868473
+  }
+}

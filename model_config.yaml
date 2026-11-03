@@ -6,6 +6,27 @@ selection:
   primary_metric: f1_macro
   threshold_objective: f1
   threshold_fallback: 0.5
+  model_source_by_task:
+    anomaly_type: cross_validation
+
+features:
+  anomaly_type:
+    window_statistics:
+      - mean
+      - std
+      - min
+      - max
+      - range
+      - slope
+      - q10
+      - q25
+      - median
+      - q75
+      - q90
+      - first
+      - last
+      - delta
+      - iqr
 
 models:
   binary_detection:
@@ -31,26 +52,31 @@ models:
     logistic_regression:
       estimator: logistic_regression
       parameter_grid:
-        C: [0.1, 1.0, 10.0]
+        C: [0.01, 0.1, 1.0, 10.0, 100.0]
         class_weight: [balanced]
     random_forest:
       estimator: random_forest
       parameter_grid:
         n_estimators: [100]
-        max_depth: [12, null]
-        min_samples_leaf: [2]
+        max_depth: [8, null]
+        min_samples_leaf: [1, 4, 8]
+        class_weight: [balanced, balanced_subsample]
     svm:
       estimator: svm
       parameter_grid:
-        C: [0.5, 2.0]
+        C: [0.1, 1.0, 10.0]
         kernel: [rbf]
+        gamma: [scale, 0.1]
         class_weight: [balanced]
     xgboost:
       estimator: xgboost
       parameter_grid:
         n_estimators: [150]
-        max_depth: [4, 7]
-        learning_rate: [0.05]
+        max_depth: [2, 4]
+        learning_rate: [0.03, 0.1]
+        min_child_weight: [1, 5]
+        reg_lambda: [1.0]
+        sample_weight: [null, sqrt_balanced, balanced]
 
   temporal_localization:
     logistic_regression:
@@ -88,4 +114,3 @@ models:
       parameter_grid:
         C: [0.1, 1.0, 10.0]
         class_weight: [balanced]
-

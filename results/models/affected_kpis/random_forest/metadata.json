@@ -1,0 +1,468 @@
+{
+  "schema_version": 1,
+  "task_name": "affected_kpis",
+  "sequence_length": 128,
+  "feature_channels": [
+    "RSRP",
+    "DL_MCS",
+    "DL_Protocol",
+    "UL_SNR",
+    "UL_MCS",
+    "UL_NumberOfPackets",
+    "PRB_Utilization_UL"
+  ],
+  "transformed_feature_names": [
+    "numeric__RSRP",
+    "numeric__DL_MCS",
+    "numeric__UL_SNR",
+    "numeric__UL_MCS",
+    "numeric__UL_NumberOfPackets",
+    "numeric__PRB_Utilization_UL",
+    "categorical__DL_Protocol_",
+    "categorical__DL_Protocol_None",
+    "categorical__DL_Protocol_TCP",
+    "categorical__DL_Protocol_UDP"
+  ],
+  "model_feature_names": [
+    "numeric__RSRP__mean",
+    "numeric__DL_MCS__mean",
+    "numeric__UL_SNR__mean",
+    "numeric__UL_MCS__mean",
+    "numeric__UL_NumberOfPackets__mean",
+    "numeric__PRB_Utilization_UL__mean",
+    "categorical__DL_Protocol___mean",
+    "categorical__DL_Protocol_None__mean",
+    "categorical__DL_Protocol_TCP__mean",
+    "categorical__DL_Protocol_UDP__mean",
+    "numeric__RSRP__std",
+    "numeric__DL_MCS__std",
+    "numeric__UL_SNR__std",
+    "numeric__UL_MCS__std",
+    "numeric__UL_NumberOfPackets__std",
+    "numeric__PRB_Utilization_UL__std",
+    "categorical__DL_Protocol___std",
+    "categorical__DL_Protocol_None__std",
+    "categorical__DL_Protocol_TCP__std",
+    "categorical__DL_Protocol_UDP__std",
+    "numeric__RSRP__min",
+    "numeric__DL_MCS__min",
+    "numeric__UL_SNR__min",
+    "numeric__UL_MCS__min",
+    "numeric__UL_NumberOfPackets__min",
+    "numeric__PRB_Utilization_UL__min",
+    "categorical__DL_Protocol___min",
+    "categorical__DL_Protocol_None__min",
+    "categorical__DL_Protocol_TCP__min",
+    "categorical__DL_Protocol_UDP__min",
+    "numeric__RSRP__max",
+    "numeric__DL_MCS__max",
+    "numeric__UL_SNR__max",
+    "numeric__UL_MCS__max",
+    "numeric__UL_NumberOfPackets__max",
+    "numeric__PRB_Utilization_UL__max",
+    "categorical__DL_Protocol___max",
+    "categorical__DL_Protocol_None__max",
+    "categorical__DL_Protocol_TCP__max",
+    "categorical__DL_Protocol_UDP__max",
+    "numeric__RSRP__range",
+    "numeric__DL_MCS__range",
+    "numeric__UL_SNR__range",
+    "numeric__UL_MCS__range",
+    "numeric__UL_NumberOfPackets__range",
+    "numeric__PRB_Utilization_UL__range",
+    "categorical__DL_Protocol___range",
+    "categorical__DL_Protocol_None__range",
+    "categorical__DL_Protocol_TCP__range",
+    "categorical__DL_Protocol_UDP__range",
+    "numeric__RSRP__slope",
+    "numeric__DL_MCS__slope",
+    "numeric__UL_SNR__slope",
+    "numeric__UL_MCS__slope",
+    "numeric__UL_NumberOfPackets__slope",
+    "numeric__PRB_Utilization_UL__slope",
+    "categorical__DL_Protocol___slope",
+    "categorical__DL_Protocol_None__slope",
+    "categorical__DL_Protocol_TCP__slope",
+    "categorical__DL_Protocol_UDP__slope"
+  ],
+  "input_mode": "window_statistics",
+  "target_classes": [
+    "DL_BLER",
+    "DL_MCS",
+    "DL_NumberOfPackets",
+    "Estimated_UL_Buffer",
+    "PRB_Utilization_DL",
+    "PRB_Utilization_UL",
+    "PRBs_DL_Current",
+    "PRBs_UL_Current",
+    "RSRP",
+    "RX_Bytes",
+    "TX_Bytes",
+    "UL_BLER",
+    "UL_MCS",
+    "UL_NPRB",
+    "UL_NumberOfPackets",
+    "UL_SNR"
+  ],
+  "config": {
+    "project": {
+      "project": {
+        "name": "Intelligent Network Analytics",
+        "test_size": 0.2,
+        "seed": 42
+      },
+      "graphics": {
+        "figsize": [
+          8,
+          5
+        ],
+        "style": "dark_background",
+        "palette": [
+          "#004D98",
+          "#A50044"
+        ],
+        "categorical_palette": [
+          "#004D98",
+          "#A50044",
+          "#4C9F70",
+          "#FFC857",
+          "#7A68A6",
+          "#FF7F50",
+          "#37A2DA",
+          "#E6B422",
+          "#00A6A6",
+          "#D45087",
+          "#8B6D5C"
+        ],
+        "normal_color": "#4C9F70",
+        "anomalous_color": "#A50044",
+        "edgecolor": "white",
+        "alpha": 1,
+        "confidence_alpha": 0.16,
+        "grid_color": "#344050",
+        "bg_color": "#000000",
+        "paper_color": "#000000",
+        "font_color": "white"
+      },
+      "output": {
+        "submission_path": "results/predictions",
+        "figures_path": "results/figures",
+        "model_artifacts_path": "results/models"
+      },
+      "training": {
+        "validation_size": 0.1,
+        "max_parallel_tasks": 1,
+        "random_forest": {
+          "n_estimators": 100,
+          "max_depth": 14,
+          "min_samples_leaf": 2,
+          "max_temporal_training_timesteps": 150000
+        }
+      },
+      "preprocessing": {
+        "sequence_length": 128,
+        "categorical_missing_value": "__MISSING__",
+        "selected_kpis": {
+          "binary_detection": [
+            "RSRP",
+            "UL_SNR",
+            "UL_BLER",
+            "DL_BLER",
+            "RX_Bytes"
+          ],
+          "anomaly_type": [
+            "RSRP",
+            "UL_SNR",
+            "DL_MCS",
+            "UL_NPRB",
+            "PRBs_DL_Current",
+            "DL_BLER",
+            "UL_NumberOfPackets",
+            "Estimated_UL_Buffer",
+            "PRB_Utilization_UL"
+          ],
+          "temporal_localization": [
+            "RSRP",
+            "TX_Bytes",
+            "UL_NPRB",
+            "DL_BLER",
+            "UL_SNR",
+            "RX_Bytes",
+            "PRB_Utilization_DL",
+            "DL_MCS",
+            "UL_NumberOfPackets",
+            "Estimated_UL_Buffer",
+            "UL_BLER"
+          ],
+          "affected_kpis": [
+            "RSRP",
+            "DL_MCS",
+            "DL_Protocol",
+            "UL_SNR",
+            "UL_MCS",
+            "UL_NumberOfPackets",
+            "PRB_Utilization_UL"
+          ]
+        }
+      }
+    },
+    "model_selection": {
+      "cross_validation": {
+        "folds": 5,
+        "shuffle_seed": 42
+      },
+      "selection": {
+        "primary_metric": "f1_macro",
+        "threshold_objective": "f1",
+        "threshold_fallback": 0.5
+      },
+      "models": {
+        "binary_detection": {
+          "logistic_regression": {
+            "estimator": "logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "xgboost": {
+            "estimator": "xgboost",
+            "parameter_grid": {
+              "n_estimators": [
+                150
+              ],
+              "max_depth": [
+                4,
+                7
+              ],
+              "learning_rate": [
+                0.05
+              ]
+            }
+          }
+        },
+        "anomaly_type": {
+          "logistic_regression": {
+            "estimator": "logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "svm": {
+            "estimator": "svm",
+            "parameter_grid": {
+              "C": [
+                0.5,
+                2.0
+              ],
+              "kernel": [
+                "rbf"
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "xgboost": {
+            "estimator": "xgboost",
+            "parameter_grid": {
+              "n_estimators": [
+                150
+              ],
+              "max_depth": [
+                4,
+                7
+              ],
+              "learning_rate": [
+                0.05
+              ]
+            }
+          }
+        },
+        "temporal_localization": {
+          "logistic_regression": {
+            "estimator": "logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "xgboost": {
+            "estimator": "xgboost",
+            "parameter_grid": {
+              "n_estimators": [
+                150
+              ],
+              "max_depth": [
+                4,
+                7
+              ],
+              "learning_rate": [
+                0.05
+              ]
+            }
+          }
+        },
+        "affected_kpis": {
+          "one_vs_rest_logistic_regression": {
+            "estimator": "one_vs_rest_logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "classifier_chain": {
+            "estimator": "classifier_chain",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "validation_metrics": {
+    "precision_macro": 0.8479781783575518,
+    "recall_macro": 0.9229621275892677,
+    "f1_macro": 0.8675900406662826,
+    "f1_micro": 0.896580483736447,
+    "f1_weighted": 0.9085667446049739,
+    "exact_match": 0.1951219512195122
+  },
+  "library_versions": {
+    "python": "3.11.1",
+    "scikit_learn": "1.9.1"
+  },
+  "model_name": "random_forest",
+  "model_parameters": {
+    "max_depth": 12,
+    "min_samples_leaf": 2,
+    "n_estimators": 100
+  },
+  "decision_thresholds": [
+    0.4545883005883005,
+    0.7673531746031744,
+    0.23666666666666672,
+    0.28798160173160176,
+    0.20230494505494506,
+    0.20230494505494506,
+    0.9799285714285716,
+    0.9799285714285716,
+    0.3428888888888889,
+    0.5,
+    0.5,
+    0.4545883005883005,
+    0.31416666666666665,
+    0.682924297924298,
+    0.23666666666666672,
+    0.3428888888888889
+  ],
+  "cv_metrics": {
+    "exact_match_mean": 0.1260015408320493,
+    "f1_macro_mean": 0.6183840531304752,
+    "f1_micro_mean": 0.7595086958048932,
+    "f1_weighted_mean": 0.7541332409759323,
+    "precision_macro_mean": 0.6728928031630372,
+    "recall_macro_mean": 0.7205506558584613,
+    "exact_match_std": 0.044091495346278924,
+    "f1_macro_std": 0.06225415521046402,
+    "f1_micro_std": 0.0427746675638008,
+    "f1_weighted_std": 0.034348453683245565,
+    "precision_macro_std": 0.12342096398856554,
+    "recall_macro_std": 0.024577842694034624
+  },
+  "test_metrics": null,
+  "selected": false
+}

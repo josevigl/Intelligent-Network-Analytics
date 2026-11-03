@@ -34,7 +34,9 @@ def predict_task_component(
     transformed = artifact.preprocessor.transform(windows)
     if artifact.input_mode == "window_statistics":
         model_input, feature_names = summarize_windows(
-            transformed, artifact.transformed_feature_names
+            transformed,
+            artifact.transformed_feature_names,
+            getattr(artifact, "summary_statistics", ()) or None,
         )
         if feature_names != artifact.model_feature_names:
             raise ValueError("Inference feature order differs from the saved model.")

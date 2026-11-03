@@ -1,0 +1,368 @@
+{
+  "task_name": "affected_kpis",
+  "primary_metric": "f1_macro",
+  "group_split": true,
+  "grouping_strategy": "overlapping_time_intervals",
+  "cross_validation_folds": 5,
+  "sample_counts": {
+    "train": 881,
+    "validation": 123,
+    "test": 231
+  },
+  "group_count": 84,
+  "cv_candidate_results": [
+    {
+      "model_name": "one_vs_rest_logistic_regression",
+      "estimator": "one_vs_rest_logistic_regression",
+      "parameters": {
+        "C": 0.1,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.3929635336414997,
+        "f1_macro_mean": 0.7485215356449826,
+        "f1_micro_mean": 0.8444618109227726,
+        "f1_weighted_mean": 0.8594086072823484,
+        "precision_macro_mean": 0.7425157631340619,
+        "recall_macro_mean": 0.8301321746818624,
+        "exact_match_std": 0.16274918677867273,
+        "f1_macro_std": 0.0703955760870414,
+        "f1_micro_std": 0.0386716199970345,
+        "f1_weighted_std": 0.03214548576975144,
+        "precision_macro_std": 0.06847161099824511,
+        "recall_macro_std": 0.05336593539753004
+      }
+    },
+    {
+      "model_name": "one_vs_rest_logistic_regression",
+      "estimator": "one_vs_rest_logistic_regression",
+      "parameters": {
+        "C": 1.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.39743836671802774,
+        "f1_macro_mean": 0.768443729790138,
+        "f1_micro_mean": 0.8631694789042562,
+        "f1_weighted_mean": 0.8752323732223433,
+        "precision_macro_mean": 0.7569038971644951,
+        "recall_macro_mean": 0.8430480650034406,
+        "exact_match_std": 0.14076155155515524,
+        "f1_macro_std": 0.05564750266807093,
+        "f1_micro_std": 0.026873429773504588,
+        "f1_weighted_std": 0.022918740432377047,
+        "precision_macro_std": 0.059582053920531244,
+        "recall_macro_std": 0.03988787129623179
+      }
+    },
+    {
+      "model_name": "one_vs_rest_logistic_regression",
+      "estimator": "one_vs_rest_logistic_regression",
+      "parameters": {
+        "C": 10.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.3985554699537751,
+        "f1_macro_mean": 0.7699781637645681,
+        "f1_micro_mean": 0.8718186155067078,
+        "f1_weighted_mean": 0.8812106494614629,
+        "precision_macro_mean": 0.7633957966698138,
+        "recall_macro_mean": 0.8200067613327858,
+        "exact_match_std": 0.13807869188473418,
+        "f1_macro_std": 0.06230368093192979,
+        "f1_micro_std": 0.025692031733691643,
+        "f1_weighted_std": 0.018212396025563907,
+        "precision_macro_std": 0.07181463802377315,
+        "recall_macro_std": 0.047450168552847005
+      }
+    },
+    {
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.1260015408320493,
+        "f1_macro_mean": 0.6183840531304752,
+        "f1_micro_mean": 0.7595086958048932,
+        "f1_weighted_mean": 0.7541332409759323,
+        "precision_macro_mean": 0.6728928031630372,
+        "recall_macro_mean": 0.7205506558584613,
+        "exact_match_std": 0.044091495346278924,
+        "f1_macro_std": 0.06225415521046402,
+        "f1_micro_std": 0.0427746675638008,
+        "f1_weighted_std": 0.034348453683245565,
+        "precision_macro_std": 0.12342096398856554,
+        "recall_macro_std": 0.024577842694034624
+      }
+    },
+    {
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.1260015408320493,
+        "f1_macro_mean": 0.6183840531304752,
+        "f1_micro_mean": 0.7595086958048932,
+        "f1_weighted_mean": 0.7541332409759323,
+        "precision_macro_mean": 0.6728928031630372,
+        "recall_macro_mean": 0.7205506558584613,
+        "exact_match_std": 0.044091495346278924,
+        "f1_macro_std": 0.06225415521046402,
+        "f1_micro_std": 0.0427746675638008,
+        "f1_weighted_std": 0.034348453683245565,
+        "precision_macro_std": 0.12342096398856554,
+        "recall_macro_std": 0.024577842694034624
+      }
+    },
+    {
+      "model_name": "classifier_chain",
+      "estimator": "classifier_chain",
+      "parameters": {
+        "C": 0.1,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.47804956343091937,
+        "f1_macro_mean": 0.7601621315734168,
+        "f1_micro_mean": 0.8566914116705757,
+        "f1_weighted_mean": 0.8670222379203171,
+        "precision_macro_mean": 0.7597671971292348,
+        "recall_macro_mean": 0.8293756048745667,
+        "exact_match_std": 0.14571895682646463,
+        "f1_macro_std": 0.07597823541291476,
+        "f1_micro_std": 0.04049292724539927,
+        "f1_weighted_std": 0.03328668212971902,
+        "precision_macro_std": 0.07160431540821736,
+        "recall_macro_std": 0.04745049516786589
+      }
+    },
+    {
+      "model_name": "classifier_chain",
+      "estimator": "classifier_chain",
+      "parameters": {
+        "C": 1.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.48370570107858246,
+        "f1_macro_mean": 0.7577324595062931,
+        "f1_micro_mean": 0.8603438257093483,
+        "f1_weighted_mean": 0.8714197320253032,
+        "precision_macro_mean": 0.7563675255275243,
+        "recall_macro_mean": 0.8084099376764294,
+        "exact_match_std": 0.13227723441462236,
+        "f1_macro_std": 0.07974263744727161,
+        "f1_micro_std": 0.039101473364407856,
+        "f1_weighted_std": 0.029593419947553726,
+        "precision_macro_std": 0.07967897090694843,
+        "recall_macro_std": 0.06522076276914582
+      }
+    },
+    {
+      "model_name": "classifier_chain",
+      "estimator": "classifier_chain",
+      "parameters": {
+        "C": 10.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.4927580893682588,
+        "f1_macro_mean": 0.7601188972053599,
+        "f1_micro_mean": 0.8640015691216935,
+        "f1_weighted_mean": 0.8736448609347729,
+        "precision_macro_mean": 0.7668062559805475,
+        "recall_macro_mean": 0.7918021358483418,
+        "exact_match_std": 0.1457565910615456,
+        "f1_macro_std": 0.08155243184656649,
+        "f1_micro_std": 0.036050089968741844,
+        "f1_weighted_std": 0.03032706623641191,
+        "precision_macro_std": 0.08007082343315755,
+        "recall_macro_std": 0.08495833109794759
+      }
+    }
+  ],
+  "models": [
+    {
+      "task_name": "affected_kpis",
+      "model_name": "one_vs_rest_logistic_regression",
+      "estimator": "one_vs_rest_logistic_regression",
+      "parameters": {
+        "C": 10.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.3985554699537751,
+        "f1_macro_mean": 0.7699781637645681,
+        "f1_micro_mean": 0.8718186155067078,
+        "f1_weighted_mean": 0.8812106494614629,
+        "precision_macro_mean": 0.7633957966698138,
+        "recall_macro_mean": 0.8200067613327858,
+        "exact_match_std": 0.13807869188473418,
+        "f1_macro_std": 0.06230368093192979,
+        "f1_micro_std": 0.025692031733691643,
+        "f1_weighted_std": 0.018212396025563907,
+        "precision_macro_std": 0.07181463802377315,
+        "recall_macro_std": 0.047450168552847005
+      },
+      "validation_metrics": {
+        "precision_macro": 0.9365895679546816,
+        "recall_macro": 0.9262561274509804,
+        "f1_macro": 0.9223434621866108,
+        "f1_micro": 0.9533362407326647,
+        "f1_weighted": 0.9553133461070186,
+        "exact_match": 0.6747967479674797
+      },
+      "test_metrics": {
+        "precision_macro": 0.881145625856214,
+        "recall_macro": 0.8989546562816882,
+        "f1_macro": 0.8773711450732103,
+        "f1_micro": 0.9050931119587167,
+        "f1_weighted": 0.9086934971495175,
+        "exact_match": 0.44155844155844154
+      },
+      "decision_thresholds": [
+        0.2291000485420227,
+        0.6857719421386719,
+        0.20315968990325928,
+        0.5033400654792786,
+        0.37011122703552246,
+        0.37011122703552246,
+        0.9736803770065308,
+        0.9736803770065308,
+        0.003877517767250538,
+        0.5,
+        0.5,
+        0.2291000485420227,
+        0.3490864038467407,
+        0.5838990807533264,
+        0.20315968990325928,
+        0.003877517767250538
+      ],
+      "selected": true,
+      "artifact_path": "results\\models\\affected_kpis\\one_vs_rest_logistic_regression\\model_bundle.joblib"
+    },
+    {
+      "task_name": "affected_kpis",
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.1260015408320493,
+        "f1_macro_mean": 0.6183840531304752,
+        "f1_micro_mean": 0.7595086958048932,
+        "f1_weighted_mean": 0.7541332409759323,
+        "precision_macro_mean": 0.6728928031630372,
+        "recall_macro_mean": 0.7205506558584613,
+        "exact_match_std": 0.044091495346278924,
+        "f1_macro_std": 0.06225415521046402,
+        "f1_micro_std": 0.0427746675638008,
+        "f1_weighted_std": 0.034348453683245565,
+        "precision_macro_std": 0.12342096398856554,
+        "recall_macro_std": 0.024577842694034624
+      },
+      "validation_metrics": {
+        "precision_macro": 0.8479781783575518,
+        "recall_macro": 0.9229621275892677,
+        "f1_macro": 0.8675900406662826,
+        "f1_micro": 0.896580483736447,
+        "f1_weighted": 0.9085667446049739,
+        "exact_match": 0.1951219512195122
+      },
+      "test_metrics": null,
+      "decision_thresholds": [
+        0.4545883005883005,
+        0.7673531746031744,
+        0.23666666666666672,
+        0.28798160173160176,
+        0.20230494505494506,
+        0.20230494505494506,
+        0.9799285714285716,
+        0.9799285714285716,
+        0.3428888888888889,
+        0.5,
+        0.5,
+        0.4545883005883005,
+        0.31416666666666665,
+        0.682924297924298,
+        0.23666666666666672,
+        0.3428888888888889
+      ],
+      "selected": false,
+      "artifact_path": "results\\models\\affected_kpis\\random_forest\\model_bundle.joblib"
+    },
+    {
+      "task_name": "affected_kpis",
+      "model_name": "classifier_chain",
+      "estimator": "classifier_chain",
+      "parameters": {
+        "C": 0.1,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "exact_match_mean": 0.47804956343091937,
+        "f1_macro_mean": 0.7601621315734168,
+        "f1_micro_mean": 0.8566914116705757,
+        "f1_weighted_mean": 0.8670222379203171,
+        "precision_macro_mean": 0.7597671971292348,
+        "recall_macro_mean": 0.8293756048745667,
+        "exact_match_std": 0.14571895682646463,
+        "f1_macro_std": 0.07597823541291476,
+        "f1_micro_std": 0.04049292724539927,
+        "f1_weighted_std": 0.03328668212971902,
+        "precision_macro_std": 0.07160431540821736,
+        "recall_macro_std": 0.04745049516786589
+      },
+      "validation_metrics": {
+        "precision_macro": 0.893694378618114,
+        "recall_macro": 0.9118925168381959,
+        "f1_macro": 0.8846233292831513,
+        "f1_micro": 0.9319057815845825,
+        "f1_weighted": 0.9360515673894043,
+        "exact_match": 0.4634146341463415
+      },
+      "test_metrics": null,
+      "decision_thresholds": [
+        0.32285372095745246,
+        0.7400112471565882,
+        0.080223696689927,
+        0.07345140323008953,
+        0.08128940875537309,
+        0.3597371091311753,
+        0.9743308970829919,
+        0.9641967010583085,
+        0.15640656097529967,
+        0.5,
+        0.5,
+        0.044110034024555565,
+        0.7622213568252635,
+        0.8030163362131252,
+        0.2816441243986471,
+        0.08530174511879726
+      ],
+      "selected": false,
+      "artifact_path": "results\\models\\affected_kpis\\classifier_chain\\model_bundle.joblib"
+    }
+  ],
+  "selected_model": "one_vs_rest_logistic_regression",
+  "test_metrics": {
+    "precision_macro": 0.881145625856214,
+    "recall_macro": 0.8989546562816882,
+    "f1_macro": 0.8773711450732103,
+    "f1_micro": 0.9050931119587167,
+    "f1_weighted": 0.9086934971495175,
+    "exact_match": 0.44155844155844154
+  }
+}

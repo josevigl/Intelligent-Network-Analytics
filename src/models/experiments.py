@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 from typing import Any
+import warnings
 
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -27,7 +28,13 @@ from src.artifacts import (
     save_task_artifact,
 )
 from src.evaluation.metrics import summarize_task_metrics
-from src.models.training import _temporal_training_rows, summarize_windows
+from src.models.estimators import SafeBinaryLogisticRegression
+from src.models.training import (
+    DEFAULT_WINDOW_STATISTICS,
+    WINDOW_STATISTICS,
+    _temporal_training_rows,
+    summarize_windows,
+)
 from src.preprocessing.data import TASK_NAMES
 from src.preprocessing.sequence import SequencePreprocessor
 from src.preprocessing.splitting import TaskSplits
@@ -48,6 +55,7 @@ class FittedCandidate:
     thresholds: tuple[float, ...]
     cv_metrics: dict[str, float]
     validation_metrics: dict[str, float]
+    summary_statistics: tuple[str, ...]
 
 
 def _read_model_config(
@@ -78,10 +86,25 @@ def _build_estimator(
         "one_vs_rest_logistic_regression",
         "classifier_chain",
     }:
-        estimator = LogisticRegression(
-            max_iter=2000,
-            random_state=seed,
-            **parameters,
+        logistic_parameters = dict(parameters)
+        class_weight = logistic_parameters.pop("class_weight", None)
+        estimator = (
+            SafeBinaryLogisticRegression(
+                max_iter=2000,
+                random_state=seed,
+                class_weight=class_weight,
+                **logistic_parameters,
+            )
+            if estimator_name in {
+                "one_vs_rest_logistic_regression",
+                "classifier_chain",
+            }
+            else LogisticRegression(
+                max_iter=2000,
+                random_state=seed,
+                class_weight=class_weight,
+                **logistic_parameters,
+            )
         )
         if estimator_name == "one_vs_rest_logistic_regression":
             return OneVsRestClassifier(estimator, n_jobs=1)
@@ -121,16 +144,79 @@ def _build_estimator(
             if task_name == "anomaly_type"
             else "binary:logistic"
         )
+        xgboost_parameters = dict(parameters)
+        xgboost_parameters.pop("sample_weight", None)
         return XGBClassifier(
             objective=objective,
             eval_metric="mlogloss" if task_name == "anomaly_type" else "logloss",
             tree_method="hist",
             n_jobs=1,
             random_state=seed,
-            **parameters,
+            **xgboost_parameters,
         )
 
     raise ValueError(f"Unknown estimator family: {estimator_name!r}.")
+
+
+def _fit_estimator(model: Any, X: np.ndarray, y: np.ndarray) -> Any:
+    if isinstance(model, OneVsRestClassifier):
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"Label .* is present in all training examples\.",
+                category=UserWarning,
+            )
+            return model.fit(X, y)
+    return model.fit(X, y)
+
+
+def _fit_candidate_estimator(
+    model: Any,
+    X: np.ndarray,
+    y: np.ndarray,
+    sample_weight_mode: str | None,
+) -> Any:
+    if sample_weight_mode is None or sample_weight_mode == "none":
+        return _fit_estimator(model, X, y)
+    if y.ndim != 1:
+        raise ValueError(
+            "Sample weighting is currently supported for single-label targets."
+        )
+    classes, class_counts = np.unique(y, return_counts=True)
+    if sample_weight_mode not in {"balanced", "sqrt_balanced"}:
+        raise ValueError(f"Unknown sample weight mode: {sample_weight_mode!r}.")
+    power = 1.0 if sample_weight_mode == "balanced" else 0.5
+    class_weights = np.power(
+        len(y) / (len(classes) * class_counts),
+        power,
+    )
+    class_weights /= np.average(
+        class_weights,
+        weights=class_counts,
+    )
+    weights = np.asarray(
+        [class_weights[np.searchsorted(classes, label)] for label in y],
+        dtype=np.float64,
+    )
+    return model.fit(X, y, sample_weight=weights)
+
+
+def _task_window_statistics(
+    task_name: str,
+    model_config: dict[str, Any],
+) -> tuple[str, ...]:
+    configured = (
+        model_config.get("features", {})
+        .get(task_name, {})
+        .get("window_statistics")
+    )
+    statistics = tuple(configured or DEFAULT_WINDOW_STATISTICS)
+    if not set(statistics).issubset(WINDOW_STATISTICS):
+        unknown = set(statistics) - set(WINDOW_STATISTICS)
+        raise ValueError(f"Unknown window statistics: {sorted(unknown)}.")
+    if len(set(statistics)) != len(statistics):
+        raise ValueError("Configured window statistics must be unique.")
+    return statistics
 
 
 def _probabilities(model: Any, X: np.ndarray, multilabel: bool) -> np.ndarray:
@@ -138,12 +224,23 @@ def _probabilities(model: Any, X: np.ndarray, multilabel: bool) -> np.ndarray:
     if isinstance(raw, list):
         if not raw:
             raise ValueError("The estimator returned no per-label probabilities.")
-        return np.column_stack(
-            [
-                values[:, 1] if values.ndim == 2 else values
-                for values in raw
-            ]
-        )
+        model_classes = getattr(model, "classes_", None)
+        columns = []
+        for index, values in enumerate(raw):
+            probabilities = np.asarray(values)
+            classes = (
+                np.asarray(model_classes[index])
+                if isinstance(model_classes, list)
+                else np.asarray([0, 1])
+            )
+            positive_indices = np.flatnonzero(classes == 1)
+            if positive_indices.size == 0:
+                columns.append(np.zeros(len(X), dtype=np.float64))
+            elif probabilities.ndim == 1:
+                columns.append(probabilities)
+            else:
+                columns.append(probabilities[:, positive_indices[0]])
+        return np.column_stack(columns)
     probabilities = np.asarray(raw)
     if multilabel:
         if probabilities.ndim != 2:
@@ -371,6 +468,7 @@ def _collect_cv_scores(
     fold_count = int(model_config["cross_validation"].get("folds", 5))
     folds = _cv_splits(task_name, splits, fold_count, seed)
     candidates: list[dict[str, Any]] = []
+    summary_statistics = _task_window_statistics(task_name, model_config)
     for model_name, specification in model_specs.items():
         estimator_name = str(specification["estimator"])
         for parameters in ParameterGrid(specification["parameter_grid"]):
@@ -400,10 +498,10 @@ def _collect_cv_scores(
         else:
             channel_names = tuple(preprocessor.get_feature_names_out())
             X_train, train_features = summarize_windows(
-                X_train, channel_names
+                X_train, channel_names, summary_statistics
             )
             X_validation, validation_features = summarize_windows(
-                X_validation, channel_names
+                X_validation, channel_names, summary_statistics
             )
             if train_features != validation_features:
                 raise RuntimeError("Fold feature order changed after preprocessing.")
@@ -443,7 +541,12 @@ def _collect_cv_scores(
                     X_fit, y_fit = X_train, y_train_encoded
             else:
                 X_fit, y_fit = X_train, y_train_encoded
-            model.fit(X_fit, y_fit)
+            _fit_candidate_estimator(
+                model,
+                X_fit,
+                y_fit,
+                candidate["parameters"].get("sample_weight"),
+            )
             prediction = _default_predictions(
                 task_name, model, X_validation, encoder
             )
@@ -477,6 +580,7 @@ def _fit_candidate(
     splits: TaskSplits,
     candidate: dict[str, Any],
     model_config_context: dict[str, Any],
+    summary_statistics: tuple[str, ...],
     threshold_fallback: float,
     seed: int,
 ) -> FittedCandidate:
@@ -497,10 +601,10 @@ def _fit_candidate(
     else:
         channel_names = tuple(preprocessor.get_feature_names_out())
         X_train_model, feature_names = summarize_windows(
-            X_train, channel_names
+            X_train, channel_names, summary_statistics
         )
         X_validation_model, validation_names = summarize_windows(
-            X_validation, channel_names
+            X_validation, channel_names, summary_statistics
         )
         if feature_names != validation_names:
             raise RuntimeError("Train and validation feature orders differ.")
@@ -529,7 +633,12 @@ def _fit_candidate(
                 int(max_rows),
                 seed,
             )
-    model.fit(X_train_model, y_train_encoded)
+    _fit_candidate_estimator(
+        model,
+        X_train_model,
+        y_train_encoded,
+        candidate["parameters"].get("sample_weight"),
+    )
 
     if task_name == "anomaly_type":
         validation_probabilities = np.empty((0,))
@@ -586,6 +695,7 @@ def _fit_candidate(
         thresholds=thresholds,
         cv_metrics=candidate["cv_metrics"],
         validation_metrics=validation_metrics,
+        summary_statistics=summary_statistics,
     )
 
 
@@ -602,6 +712,7 @@ def _test_metrics(
         X_test, feature_names = summarize_windows(
             X_test_transformed,
             tuple(fitted.preprocessor.get_feature_names_out()),
+            fitted.summary_statistics,
         )
         if feature_names != fitted.model_feature_names:
             raise RuntimeError("Test feature order differs from the saved model.")
@@ -655,6 +766,7 @@ def run_task_model_comparison(
     project_config: dict[str, Any],
     model_config: dict[str, Any],
     artifact_directory: str | Path,
+    evaluate_test: bool = True,
 ) -> dict[str, Any]:
     """CV-search each configured family, compare on validation, test once."""
     if task_name not in TASK_NAMES or task_name != splits.task_name:
@@ -690,12 +802,14 @@ def run_task_model_comparison(
     )
     if not 0 < threshold_fallback < 1:
         raise ValueError("selection.threshold_fallback must be between zero and one.")
+    summary_statistics = _task_window_statistics(task_name, model_config)
     fitted_candidates = [
         _fit_candidate(
             task_name,
             splits,
             candidate,
             project_config,
+            summary_statistics,
             threshold_fallback,
             seed,
         )
@@ -706,14 +820,31 @@ def run_task_model_comparison(
     )
     if primary_metric not in {"f1_macro", "f1_micro", "f1_weighted"}:
         raise ValueError(f"Unsupported model selection metric: {primary_metric!r}.")
-    selected = max(
-        fitted_candidates,
-        key=lambda fitted: (
-            fitted.validation_metrics[primary_metric],
-            fitted.cv_metrics[f"{primary_metric}_mean"],
-        ),
+    selection_source = model_config.get("selection", {}).get(
+        "model_source_by_task", {}
+    ).get(task_name, "validation")
+    if selection_source == "cross_validation":
+        selected = max(
+            fitted_candidates,
+            key=lambda fitted: fitted.cv_metrics[f"{primary_metric}_mean"],
+        )
+    elif selection_source == "validation":
+        selected = max(
+            fitted_candidates,
+            key=lambda fitted: (
+                fitted.validation_metrics[primary_metric],
+                fitted.cv_metrics[f"{primary_metric}_mean"],
+            ),
+        )
+    else:
+        raise ValueError(
+            "Model selection source must be 'validation' or 'cross_validation'."
+        )
+    selected_test_metrics = (
+        _test_metrics(task_name, selected, splits)
+        if evaluate_test
+        else None
     )
-    selected_test_metrics = _test_metrics(task_name, selected, splits)
 
     result_rows: list[dict[str, Any]] = []
     candidate_root = Path(artifact_directory) / task_name
@@ -753,6 +884,7 @@ def run_task_model_comparison(
             cv_metrics=fitted.cv_metrics,
             test_metrics=test_metrics,
             selected=is_selected,
+            summary_statistics=fitted.summary_statistics,
         )
         artifact_path = save_task_artifact(
             artifact,
@@ -776,6 +908,8 @@ def run_task_model_comparison(
     payload = {
         "task_name": task_name,
         "primary_metric": primary_metric,
+        "selection_source": selection_source,
+        "test_evaluated": evaluate_test,
         "group_split": splits.groups_train is not None,
         "grouping_strategy": (
             "overlapping_time_intervals"

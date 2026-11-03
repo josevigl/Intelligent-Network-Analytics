@@ -42,6 +42,7 @@ class TaskModelArtifact:
     cv_metrics: dict[str, float] | None = None
     test_metrics: dict[str, float] | None = None
     selected: bool = False
+    summary_statistics: tuple[str, ...] = ()
 
 
 def build_task_artifact(

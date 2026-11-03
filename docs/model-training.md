@@ -17,6 +17,11 @@ temporal-localization, and multi-label thresholds are calibrated on validation.
 Only the selected model is evaluated against test; the test set does not affect
 model choice, hyperparameters, or thresholds.
 
+Affected-KPI labels can be constant within a grouped CV fold (for example,
+labels present in every training window). The One-vs-Rest and Classifier Chain
+logistic models use a constant binary predictor for those outputs instead of
+failing when logistic regression sees only one class.
+
 This is classical machine-learning training: there is no neural-network
 checkpoint. The selected checkpoint-equivalent is the fitted estimator,
 preprocessor, parameters, and validation-calibrated threshold saved together.

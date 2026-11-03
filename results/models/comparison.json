@@ -1,0 +1,1363 @@
+[
+  {
+    "task_name": "binary_detection",
+    "primary_metric": "f1_macro",
+    "group_split": true,
+    "grouping_strategy": "overlapping_time_intervals",
+    "cross_validation_folds": 5,
+    "sample_counts": {
+      "train": 22318,
+      "validation": 3123,
+      "test": 6559
+    },
+    "group_count": 105,
+    "cv_candidate_results": [
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.6995775373651816,
+          "f1_macro_mean": 0.48964794367476605,
+          "f1_micro_mean": 0.6995775373651816,
+          "f1_weighted_mean": 0.776942831017333,
+          "precision_macro_mean": 0.5451879994952711,
+          "recall_macro_mean": 0.7004874551821424,
+          "accuracy_std": 0.1771952238039751,
+          "f1_macro_std": 0.09346591153134488,
+          "f1_micro_std": 0.1771952238039751,
+          "f1_weighted_std": 0.13872200543357502,
+          "precision_macro_std": 0.023102326063203973,
+          "recall_macro_std": 0.08158139313685832
+        }
+      },
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.6810435131707183,
+          "f1_macro_mean": 0.47909339352459906,
+          "f1_micro_mean": 0.6810435131707183,
+          "f1_weighted_mean": 0.7613232777006549,
+          "precision_macro_mean": 0.5433762349987746,
+          "recall_macro_mean": 0.6936421540168429,
+          "accuracy_std": 0.18959318695330457,
+          "f1_macro_std": 0.09908587243013578,
+          "f1_micro_std": 0.18959318695330457,
+          "f1_weighted_std": 0.14833341870976985,
+          "precision_macro_std": 0.02245420638529398,
+          "recall_macro_std": 0.08364383236576528
+        }
+      },
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.6783730960267598,
+          "f1_macro_mean": 0.4772134958531204,
+          "f1_micro_mean": 0.6783730960267598,
+          "f1_weighted_mean": 0.7587387164148248,
+          "precision_macro_mean": 0.542904156199955,
+          "recall_macro_mean": 0.6905629891305037,
+          "accuracy_std": 0.1929026831948916,
+          "f1_macro_std": 0.10070520270626478,
+          "f1_micro_std": 0.1929026831948916,
+          "f1_weighted_std": 0.15119991901724142,
+          "precision_macro_std": 0.022313913863618418,
+          "recall_macro_std": 0.08376659992665783
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": 12,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.9477473569878898,
+          "f1_macro_mean": 0.8373450558486271,
+          "f1_micro_mean": 0.9477473569878898,
+          "f1_weighted_mean": 0.9597840581333654,
+          "precision_macro_mean": 0.8335072810649189,
+          "recall_macro_mean": 0.8897390997536693,
+          "accuracy_std": 0.0759906758208968,
+          "f1_macro_std": 0.14444708723578953,
+          "f1_micro_std": 0.0759906758208968,
+          "f1_weighted_std": 0.05325741018266356,
+          "precision_macro_std": 0.15406742669443677,
+          "recall_macro_std": 0.06510932807765435
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.9615048773935237,
+          "f1_macro_mean": 0.8537228278893807,
+          "f1_micro_mean": 0.9615048773935237,
+          "f1_weighted_mean": 0.9687309266893621,
+          "precision_macro_mean": 0.8544596777556512,
+          "recall_macro_mean": 0.8873343197344251,
+          "accuracy_std": 0.05096029987256094,
+          "f1_macro_std": 0.1245006655775732,
+          "f1_micro_std": 0.05096029987256094,
+          "f1_weighted_std": 0.03725645116345364,
+          "precision_macro_std": 0.14653146418124324,
+          "recall_macro_std": 0.04929649977361558
+        }
+      },
+      {
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 4,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.9419098301756057,
+          "f1_macro_mean": 0.8003271479045466,
+          "f1_micro_mean": 0.9419098301756057,
+          "f1_weighted_mean": 0.954298704686285,
+          "precision_macro_mean": 0.804066834360101,
+          "recall_macro_mean": 0.8546725288597802,
+          "accuracy_std": 0.05742628116504947,
+          "f1_macro_std": 0.14489876623045958,
+          "f1_micro_std": 0.05742628116504947,
+          "f1_weighted_std": 0.04202809067843411,
+          "precision_macro_std": 0.1736194599821576,
+          "recall_macro_std": 0.0531593680042507
+        }
+      },
+      {
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 7,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.9306811595854457,
+          "f1_macro_mean": 0.7632320779202514,
+          "f1_micro_mean": 0.9306811595854457,
+          "f1_weighted_mean": 0.9458466874271025,
+          "precision_macro_mean": 0.7915848285880166,
+          "recall_macro_mean": 0.8128068204362933,
+          "accuracy_std": 0.07048102116333305,
+          "f1_macro_std": 0.14602582607164694,
+          "f1_micro_std": 0.07048102116333305,
+          "f1_weighted_std": 0.04952329862390539,
+          "precision_macro_std": 0.17541336148706163,
+          "recall_macro_std": 0.08177686368674167
+        }
+      }
+    ],
+    "models": [
+      {
+        "task_name": "binary_detection",
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.6995775373651816,
+          "f1_macro_mean": 0.48964794367476605,
+          "f1_micro_mean": 0.6995775373651816,
+          "f1_weighted_mean": 0.776942831017333,
+          "precision_macro_mean": 0.5451879994952711,
+          "recall_macro_mean": 0.7004874551821424,
+          "accuracy_std": 0.1771952238039751,
+          "f1_macro_std": 0.09346591153134488,
+          "f1_micro_std": 0.1771952238039751,
+          "f1_weighted_std": 0.13872200543357502,
+          "precision_macro_std": 0.023102326063203973,
+          "recall_macro_std": 0.08158139313685832
+        },
+        "validation_metrics": {
+          "accuracy": 0.9862311879602946,
+          "precision_macro": 0.9542964654785082,
+          "recall_macro": 0.8449895081631609,
+          "f1_micro": 0.9862311879602946,
+          "f1_macro": 0.891562937811136,
+          "f1_weighted": 0.9852903451726572
+        },
+        "test_metrics": null,
+        "decision_thresholds": [
+          0.9024257659912109
+        ],
+        "selected": false,
+        "artifact_path": "results\\models\\binary_detection\\logistic_regression\\model_bundle.joblib"
+      },
+      {
+        "task_name": "binary_detection",
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.9615048773935237,
+          "f1_macro_mean": 0.8537228278893807,
+          "f1_micro_mean": 0.9615048773935237,
+          "f1_weighted_mean": 0.9687309266893621,
+          "precision_macro_mean": 0.8544596777556512,
+          "recall_macro_mean": 0.8873343197344251,
+          "accuracy_std": 0.05096029987256094,
+          "f1_macro_std": 0.1245006655775732,
+          "f1_micro_std": 0.05096029987256094,
+          "f1_weighted_std": 0.03725645116345364,
+          "precision_macro_std": 0.14653146418124324,
+          "recall_macro_std": 0.04929649977361558
+        },
+        "validation_metrics": {
+          "accuracy": 0.9916746717899456,
+          "precision_macro": 0.9761604136604136,
+          "recall_macro": 0.9053175699882287,
+          "f1_micro": 0.9916746717899456,
+          "f1_macro": 0.9376589275843008,
+          "f1_weighted": 0.9913402089775267
+        },
+        "test_metrics": {
+          "accuracy": 0.9835340753163592,
+          "precision_macro": 0.9799587962238565,
+          "recall_macro": 0.8056522347727267,
+          "f1_micro": 0.9835340753163592,
+          "f1_macro": 0.8718887855213414,
+          "f1_weighted": 0.9817106996868473
+        },
+        "decision_thresholds": [
+          0.6764883197298056
+        ],
+        "selected": true,
+        "artifact_path": "results\\models\\binary_detection\\random_forest\\model_bundle.joblib"
+      },
+      {
+        "task_name": "binary_detection",
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 4,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.9419098301756057,
+          "f1_macro_mean": 0.8003271479045466,
+          "f1_micro_mean": 0.9419098301756057,
+          "f1_weighted_mean": 0.954298704686285,
+          "precision_macro_mean": 0.804066834360101,
+          "recall_macro_mean": 0.8546725288597802,
+          "accuracy_std": 0.05742628116504947,
+          "f1_macro_std": 0.14489876623045958,
+          "f1_micro_std": 0.05742628116504947,
+          "f1_weighted_std": 0.04202809067843411,
+          "precision_macro_std": 0.1736194599821576,
+          "recall_macro_std": 0.0531593680042507
+        },
+        "validation_metrics": {
+          "accuracy": 0.9903938520653218,
+          "precision_macro": 0.974654105541264,
+          "recall_macro": 0.8882235528942115,
+          "f1_micro": 0.9903938520653218,
+          "f1_macro": 0.9267593698601009,
+          "f1_weighted": 0.989912931897505
+        },
+        "test_metrics": null,
+        "decision_thresholds": [
+          0.9314241409301758
+        ],
+        "selected": false,
+        "artifact_path": "results\\models\\binary_detection\\xgboost\\model_bundle.joblib"
+      }
+    ],
+    "selected_model": "random_forest",
+    "test_metrics": {
+      "accuracy": 0.9835340753163592,
+      "precision_macro": 0.9799587962238565,
+      "recall_macro": 0.8056522347727267,
+      "f1_micro": 0.9835340753163592,
+      "f1_macro": 0.8718887855213414,
+      "f1_weighted": 0.9817106996868473
+    }
+  },
+  {
+    "task_name": "anomaly_type",
+    "primary_metric": "f1_macro",
+    "group_split": true,
+    "grouping_strategy": "overlapping_time_intervals",
+    "cross_validation_folds": 3,
+    "sample_counts": {
+      "train": 844,
+      "validation": 149,
+      "test": 242
+    },
+    "group_count": 84,
+    "cv_candidate_results": [
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.43471786833855797,
+          "f1_macro_mean": 0.36890789966218945,
+          "f1_micro_mean": 0.43471786833855797,
+          "f1_weighted_mean": 0.41425303403692143,
+          "precision_macro_mean": 0.3997434513910794,
+          "recall_macro_mean": 0.4268824096623525,
+          "accuracy_std": 0.11725260690320657,
+          "f1_macro_std": 0.07929310759931374,
+          "f1_micro_std": 0.11725260690320657,
+          "f1_weighted_std": 0.11494167346606027,
+          "precision_macro_std": 0.06492775809402382,
+          "recall_macro_std": 0.08290388920110367
+        }
+      },
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.46147490227949994,
+          "f1_macro_mean": 0.3849257190244562,
+          "f1_micro_mean": 0.46147490227949994,
+          "f1_weighted_mean": 0.4408024893176233,
+          "precision_macro_mean": 0.39631890796284264,
+          "recall_macro_mean": 0.44462770467040674,
+          "accuracy_std": 0.10293867343460604,
+          "f1_macro_std": 0.07276535798369214,
+          "f1_micro_std": 0.10293867343460604,
+          "f1_weighted_std": 0.11476947513008653,
+          "precision_macro_std": 0.08548915476140598,
+          "recall_macro_std": 0.07616458095951
+        }
+      },
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.45184577023657485,
+          "f1_macro_mean": 0.3653271925446171,
+          "f1_micro_mean": 0.45184577023657485,
+          "f1_weighted_mean": 0.4352489889214761,
+          "precision_macro_mean": 0.3653383775670502,
+          "recall_macro_mean": 0.41868475962311175,
+          "accuracy_std": 0.11936766325516136,
+          "f1_macro_std": 0.08347864709075015,
+          "f1_micro_std": 0.11936766325516136,
+          "f1_weighted_std": 0.1312458569474154,
+          "precision_macro_std": 0.09618008393088955,
+          "recall_macro_std": 0.08648648293616182
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": 12,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.5714766714766715,
+          "f1_macro_mean": 0.47744393076752695,
+          "f1_micro_mean": 0.5714766714766715,
+          "f1_weighted_mean": 0.5585538320472927,
+          "precision_macro_mean": 0.5123661375859418,
+          "recall_macro_mean": 0.4839307103802514,
+          "accuracy_std": 0.053465145388941794,
+          "f1_macro_std": 0.012784838654987708,
+          "f1_micro_std": 0.053465145388941794,
+          "f1_weighted_std": 0.06428059880404832,
+          "precision_macro_std": 0.010422734749178403,
+          "recall_macro_std": 0.007071466561596015
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.5718925710305021,
+          "f1_macro_mean": 0.48135898340243405,
+          "f1_micro_mean": 0.5718925710305021,
+          "f1_weighted_mean": 0.5584585993536543,
+          "precision_macro_mean": 0.504105180815549,
+          "recall_macro_mean": 0.49523779555097286,
+          "accuracy_std": 0.06861550751427645,
+          "f1_macro_std": 0.02632428299437208,
+          "f1_micro_std": 0.06861550751427645,
+          "f1_weighted_std": 0.08245122567838907,
+          "precision_macro_std": 0.02487534608054506,
+          "recall_macro_std": 0.019005696373119513
+        }
+      },
+      {
+        "model_name": "svm",
+        "estimator": "svm",
+        "parameters": {
+          "C": 0.5,
+          "class_weight": "balanced",
+          "kernel": "rbf"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.3815938531455773,
+          "f1_macro_mean": 0.33099101511048445,
+          "f1_micro_mean": 0.3815938531455773,
+          "f1_weighted_mean": 0.3518678513226228,
+          "precision_macro_mean": 0.4018507045672002,
+          "recall_macro_mean": 0.3809123783917348,
+          "accuracy_std": 0.11446243508706576,
+          "f1_macro_std": 0.08139536268003875,
+          "f1_micro_std": 0.11446243508706576,
+          "f1_weighted_std": 0.1246440566358742,
+          "precision_macro_std": 0.04661942507006084,
+          "recall_macro_std": 0.08291958725305083
+        }
+      },
+      {
+        "model_name": "svm",
+        "estimator": "svm",
+        "parameters": {
+          "C": 2.0,
+          "class_weight": "balanced",
+          "kernel": "rbf"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.3842295422755193,
+          "f1_macro_mean": 0.3301535406287735,
+          "f1_micro_mean": 0.3842295422755193,
+          "f1_weighted_mean": 0.36553234228408765,
+          "precision_macro_mean": 0.3621454838435459,
+          "recall_macro_mean": 0.36538658806915114,
+          "accuracy_std": 0.09278456143903228,
+          "f1_macro_std": 0.05041085608699147,
+          "f1_micro_std": 0.09278456143903228,
+          "f1_weighted_std": 0.10803229618691591,
+          "precision_macro_std": 0.06519680290922948,
+          "recall_macro_std": 0.05057141255194144
+        }
+      },
+      {
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 4,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.5383517716851051,
+          "f1_macro_mean": 0.46231079101501865,
+          "f1_micro_mean": 0.5383517716851051,
+          "f1_weighted_mean": 0.524609266125733,
+          "precision_macro_mean": 0.5180487715210526,
+          "recall_macro_mean": 0.4749167505215613,
+          "accuracy_std": 0.08573731893761657,
+          "f1_macro_std": 0.043689204281383065,
+          "f1_micro_std": 0.08573731893761657,
+          "f1_weighted_std": 0.08122891505243547,
+          "precision_macro_std": 0.04933621286077915,
+          "recall_macro_std": 0.039052983834864274
+        }
+      },
+      {
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 7,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.5494664764779708,
+          "f1_macro_mean": 0.46853384263563447,
+          "f1_micro_mean": 0.5494664764779708,
+          "f1_weighted_mean": 0.532845810628299,
+          "precision_macro_mean": 0.5167986635606466,
+          "recall_macro_mean": 0.4859948553496661,
+          "accuracy_std": 0.0627339577559946,
+          "f1_macro_std": 0.020100065058233658,
+          "f1_micro_std": 0.0627339577559946,
+          "f1_weighted_std": 0.06606221297617368,
+          "precision_macro_std": 0.04006473737943984,
+          "recall_macro_std": 0.010797355310341213
+        }
+      }
+    ],
+    "models": [
+      {
+        "task_name": "anomaly_type",
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.46147490227949994,
+          "f1_macro_mean": 0.3849257190244562,
+          "f1_micro_mean": 0.46147490227949994,
+          "f1_weighted_mean": 0.4408024893176233,
+          "precision_macro_mean": 0.39631890796284264,
+          "recall_macro_mean": 0.44462770467040674,
+          "accuracy_std": 0.10293867343460604,
+          "f1_macro_std": 0.07276535798369214,
+          "f1_micro_std": 0.10293867343460604,
+          "f1_weighted_std": 0.11476947513008653,
+          "precision_macro_std": 0.08548915476140598,
+          "recall_macro_std": 0.07616458095951
+        },
+        "validation_metrics": {
+          "accuracy": 0.5033557046979866,
+          "precision_macro": 0.3232804232804233,
+          "recall_macro": 0.32356301106301105,
+          "f1_micro": 0.5033557046979866,
+          "f1_macro": 0.32078162886892025,
+          "f1_weighted": 0.5085375084461851
+        },
+        "test_metrics": null,
+        "decision_thresholds": [],
+        "selected": false,
+        "artifact_path": "results\\models\\anomaly_type\\logistic_regression\\model_bundle.joblib"
+      },
+      {
+        "task_name": "anomaly_type",
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.5718925710305021,
+          "f1_macro_mean": 0.48135898340243405,
+          "f1_micro_mean": 0.5718925710305021,
+          "f1_weighted_mean": 0.5584585993536543,
+          "precision_macro_mean": 0.504105180815549,
+          "recall_macro_mean": 0.49523779555097286,
+          "accuracy_std": 0.06861550751427645,
+          "f1_macro_std": 0.02632428299437208,
+          "f1_micro_std": 0.06861550751427645,
+          "f1_weighted_std": 0.08245122567838907,
+          "precision_macro_std": 0.02487534608054506,
+          "recall_macro_std": 0.019005696373119513
+        },
+        "validation_metrics": {
+          "accuracy": 0.6845637583892618,
+          "precision_macro": 0.5023919262555626,
+          "recall_macro": 0.4361471861471861,
+          "f1_micro": 0.6845637583892618,
+          "f1_macro": 0.4384716732542819,
+          "f1_weighted": 0.7025570361724432
+        },
+        "test_metrics": null,
+        "decision_thresholds": [],
+        "selected": false,
+        "artifact_path": "results\\models\\anomaly_type\\random_forest\\model_bundle.joblib"
+      },
+      {
+        "task_name": "anomaly_type",
+        "model_name": "svm",
+        "estimator": "svm",
+        "parameters": {
+          "C": 0.5,
+          "class_weight": "balanced",
+          "kernel": "rbf"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.3815938531455773,
+          "f1_macro_mean": 0.33099101511048445,
+          "f1_micro_mean": 0.3815938531455773,
+          "f1_weighted_mean": 0.3518678513226228,
+          "precision_macro_mean": 0.4018507045672002,
+          "recall_macro_mean": 0.3809123783917348,
+          "accuracy_std": 0.11446243508706576,
+          "f1_macro_std": 0.08139536268003875,
+          "f1_micro_std": 0.11446243508706576,
+          "f1_weighted_std": 0.1246440566358742,
+          "precision_macro_std": 0.04661942507006084,
+          "recall_macro_std": 0.08291958725305083
+        },
+        "validation_metrics": {
+          "accuracy": 0.28859060402684567,
+          "precision_macro": 0.21803030303030307,
+          "recall_macro": 0.20267857142857143,
+          "f1_micro": 0.28859060402684567,
+          "f1_macro": 0.1926477732793522,
+          "f1_weighted": 0.32818846289704645
+        },
+        "test_metrics": null,
+        "decision_thresholds": [],
+        "selected": false,
+        "artifact_path": "results\\models\\anomaly_type\\svm\\model_bundle.joblib"
+      },
+      {
+        "task_name": "anomaly_type",
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 7,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.5494664764779708,
+          "f1_macro_mean": 0.46853384263563447,
+          "f1_micro_mean": 0.5494664764779708,
+          "f1_weighted_mean": 0.532845810628299,
+          "precision_macro_mean": 0.5167986635606466,
+          "recall_macro_mean": 0.4859948553496661,
+          "accuracy_std": 0.0627339577559946,
+          "f1_macro_std": 0.020100065058233658,
+          "f1_micro_std": 0.0627339577559946,
+          "f1_weighted_std": 0.06606221297617368,
+          "precision_macro_std": 0.04006473737943984,
+          "recall_macro_std": 0.010797355310341213
+        },
+        "validation_metrics": {
+          "accuracy": 0.6711409395973155,
+          "precision_macro": 0.5807168458781361,
+          "recall_macro": 0.47791666666666666,
+          "f1_micro": 0.6711409395973155,
+          "f1_macro": 0.45999641205038505,
+          "f1_weighted": 0.6750133279600091
+        },
+        "test_metrics": {
+          "accuracy": 0.8016528925619835,
+          "precision_macro": 0.5918673255465708,
+          "recall_macro": 0.6081783897278527,
+          "f1_micro": 0.8016528925619835,
+          "f1_macro": 0.5945072858747189,
+          "f1_weighted": 0.7896366345946537
+        },
+        "decision_thresholds": [],
+        "selected": true,
+        "artifact_path": "results\\models\\anomaly_type\\xgboost\\model_bundle.joblib"
+      }
+    ],
+    "selected_model": "xgboost",
+    "test_metrics": {
+      "accuracy": 0.8016528925619835,
+      "precision_macro": 0.5918673255465708,
+      "recall_macro": 0.6081783897278527,
+      "f1_micro": 0.8016528925619835,
+      "f1_macro": 0.5945072858747189,
+      "f1_weighted": 0.7896366345946537
+    }
+  },
+  {
+    "task_name": "temporal_localization",
+    "primary_metric": "f1_macro",
+    "group_split": true,
+    "grouping_strategy": "overlapping_time_intervals",
+    "cross_validation_folds": 3,
+    "sample_counts": {
+      "train": 844,
+      "validation": 149,
+      "test": 242
+    },
+    "group_count": 84,
+    "cv_candidate_results": [
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.6995106988484322,
+          "f1_macro_mean": 0.6729340425750476,
+          "f1_micro_mean": 0.6995106988484322,
+          "f1_weighted_mean": 0.7127543695335768,
+          "precision_macro_mean": 0.678626568547784,
+          "recall_macro_mean": 0.7136006317917526,
+          "accuracy_std": 0.03451866230233151,
+          "f1_macro_std": 0.04545990514414323,
+          "f1_micro_std": 0.03451866230233151,
+          "f1_weighted_std": 0.032613509564525314,
+          "precision_macro_std": 0.046493377854657306,
+          "recall_macro_std": 0.05379003569689446
+        }
+      },
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.7066987653284348,
+          "f1_macro_mean": 0.6813744560512389,
+          "f1_micro_mean": 0.7066987653284348,
+          "f1_weighted_mean": 0.7199022211366112,
+          "precision_macro_mean": 0.6859608266358744,
+          "recall_macro_mean": 0.7229335704120058,
+          "accuracy_std": 0.03604786564861263,
+          "f1_macro_std": 0.045045301117002494,
+          "f1_micro_std": 0.03604786564861263,
+          "f1_weighted_std": 0.03385992889999509,
+          "precision_macro_std": 0.04488526839438128,
+          "recall_macro_std": 0.05092335950799795
+        }
+      },
+      {
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.7074389914211214,
+          "f1_macro_mean": 0.6824634338525041,
+          "f1_micro_mean": 0.7074389914211214,
+          "f1_weighted_mean": 0.7207075206648902,
+          "precision_macro_mean": 0.6869609680486105,
+          "recall_macro_mean": 0.7243206350567575,
+          "accuracy_std": 0.0367014994324858,
+          "f1_macro_std": 0.04536082210262765,
+          "f1_micro_std": 0.0367014994324858,
+          "f1_weighted_std": 0.034382718981289764,
+          "precision_macro_std": 0.044890089847462136,
+          "recall_macro_std": 0.05059636825670249
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": 12,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.7897348111226523,
+          "f1_macro_mean": 0.7631297512102195,
+          "f1_micro_mean": 0.7897348111226523,
+          "f1_weighted_mean": 0.7973592501533661,
+          "precision_macro_mean": 0.7611220093951822,
+          "recall_macro_mean": 0.79290134703808,
+          "accuracy_std": 0.0653816505718225,
+          "f1_macro_std": 0.06819533831687735,
+          "f1_micro_std": 0.0653816505718225,
+          "f1_weighted_std": 0.0584951670993587,
+          "precision_macro_std": 0.06065630144519584,
+          "recall_macro_std": 0.05609653957306592
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.7957612188956477,
+          "f1_macro_mean": 0.7682593754097594,
+          "f1_micro_mean": 0.7957612188956477,
+          "f1_weighted_mean": 0.8028010459687226,
+          "precision_macro_mean": 0.7666353797659208,
+          "recall_macro_mean": 0.7950494069032329,
+          "accuracy_std": 0.06995007506283256,
+          "f1_macro_std": 0.0739047370244361,
+          "f1_micro_std": 0.06995007506283256,
+          "f1_weighted_std": 0.06283436158989715,
+          "precision_macro_std": 0.06775631488069685,
+          "recall_macro_std": 0.06304795511908476
+        }
+      },
+      {
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 4,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.8456849827382333,
+          "f1_macro_mean": 0.8124884662040929,
+          "f1_micro_mean": 0.8456849827382333,
+          "f1_weighted_mean": 0.846871912103928,
+          "precision_macro_mean": 0.8074578866396575,
+          "recall_macro_mean": 0.8198081628148581,
+          "accuracy_std": 0.026231528705037994,
+          "f1_macro_std": 0.03713976323387097,
+          "f1_micro_std": 0.026231528705037994,
+          "f1_weighted_std": 0.02717192521478173,
+          "precision_macro_std": 0.033079880289987894,
+          "recall_macro_std": 0.04344412893563864
+        }
+      },
+      {
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 7,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.8353836227197399,
+          "f1_macro_mean": 0.8054027357974979,
+          "f1_micro_mean": 0.8353836227197399,
+          "f1_weighted_mean": 0.8387153122863898,
+          "precision_macro_mean": 0.7966717543414049,
+          "recall_macro_mean": 0.821743131451803,
+          "accuracy_std": 0.02867012377214508,
+          "f1_macro_std": 0.03813778093149859,
+          "f1_micro_std": 0.02867012377214508,
+          "f1_weighted_std": 0.02794880276093135,
+          "precision_macro_std": 0.036945790965246444,
+          "recall_macro_std": 0.04106875347120166
+        }
+      }
+    ],
+    "models": [
+      {
+        "task_name": "temporal_localization",
+        "model_name": "logistic_regression",
+        "estimator": "logistic_regression",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.7074389914211214,
+          "f1_macro_mean": 0.6824634338525041,
+          "f1_micro_mean": 0.7074389914211214,
+          "f1_weighted_mean": 0.7207075206648902,
+          "precision_macro_mean": 0.6869609680486105,
+          "recall_macro_mean": 0.7243206350567575,
+          "accuracy_std": 0.0367014994324858,
+          "f1_macro_std": 0.04536082210262765,
+          "f1_micro_std": 0.0367014994324858,
+          "f1_weighted_std": 0.034382718981289764,
+          "precision_macro_std": 0.044890089847462136,
+          "recall_macro_std": 0.05059636825670249
+        },
+        "validation_metrics": {
+          "accuracy": 0.7846581375838926,
+          "precision_macro": 0.7565794097720957,
+          "recall_macro": 0.7022078115661231,
+          "f1_micro": 0.7846581375838926,
+          "f1_macro": 0.7181040595432523,
+          "f1_weighted": 0.7720396510059919,
+          "threshold": 0.21843887865543365
+        },
+        "test_metrics": null,
+        "decision_thresholds": [
+          0.21843887865543365
+        ],
+        "selected": false,
+        "artifact_path": "results\\models\\temporal_localization\\logistic_regression\\model_bundle.joblib"
+      },
+      {
+        "task_name": "temporal_localization",
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.7957612188956477,
+          "f1_macro_mean": 0.7682593754097594,
+          "f1_micro_mean": 0.7957612188956477,
+          "f1_weighted_mean": 0.8028010459687226,
+          "precision_macro_mean": 0.7666353797659208,
+          "recall_macro_mean": 0.7950494069032329,
+          "accuracy_std": 0.06995007506283256,
+          "f1_macro_std": 0.0739047370244361,
+          "f1_micro_std": 0.06995007506283256,
+          "f1_weighted_std": 0.06283436158989715,
+          "precision_macro_std": 0.06775631488069685,
+          "recall_macro_std": 0.06304795511908476
+        },
+        "validation_metrics": {
+          "accuracy": 0.9447357382550335,
+          "precision_macro": 0.9516646307561503,
+          "recall_macro": 0.9171473345880435,
+          "f1_micro": 0.9447357382550335,
+          "f1_macro": 0.9321127583714601,
+          "f1_weighted": 0.9436398229295386,
+          "threshold": 0.15628571428571428
+        },
+        "test_metrics": {
+          "accuracy": 0.885911673553719,
+          "precision_macro": 0.9131283243484769,
+          "recall_macro": 0.786410966612365,
+          "f1_micro": 0.885911673553719,
+          "f1_macro": 0.8256606047152643,
+          "f1_weighted": 0.8757341728537142,
+          "threshold": 0.15628571428571428
+        },
+        "decision_thresholds": [
+          0.15628571428571428
+        ],
+        "selected": true,
+        "artifact_path": "results\\models\\temporal_localization\\random_forest\\model_bundle.joblib"
+      },
+      {
+        "task_name": "temporal_localization",
+        "model_name": "xgboost",
+        "estimator": "xgboost",
+        "parameters": {
+          "learning_rate": 0.05,
+          "max_depth": 4,
+          "n_estimators": 150
+        },
+        "cv_metrics": {
+          "accuracy_mean": 0.8456849827382333,
+          "f1_macro_mean": 0.8124884662040929,
+          "f1_micro_mean": 0.8456849827382333,
+          "f1_weighted_mean": 0.846871912103928,
+          "precision_macro_mean": 0.8074578866396575,
+          "recall_macro_mean": 0.8198081628148581,
+          "accuracy_std": 0.026231528705037994,
+          "f1_macro_std": 0.03713976323387097,
+          "f1_micro_std": 0.026231528705037994,
+          "f1_weighted_std": 0.02717192521478173,
+          "precision_macro_std": 0.033079880289987894,
+          "recall_macro_std": 0.04344412893563864
+        },
+        "validation_metrics": {
+          "accuracy": 0.9415897651006712,
+          "precision_macro": 0.9375858519363292,
+          "recall_macro": 0.9227583644495768,
+          "f1_micro": 0.9415897651006712,
+          "f1_macro": 0.9297051635925412,
+          "f1_weighted": 0.9410866169623519,
+          "threshold": 0.306130975484848
+        },
+        "test_metrics": null,
+        "decision_thresholds": [
+          0.306130975484848
+        ],
+        "selected": false,
+        "artifact_path": "results\\models\\temporal_localization\\xgboost\\model_bundle.joblib"
+      }
+    ],
+    "selected_model": "random_forest",
+    "test_metrics": {
+      "accuracy": 0.885911673553719,
+      "precision_macro": 0.9131283243484769,
+      "recall_macro": 0.786410966612365,
+      "f1_micro": 0.885911673553719,
+      "f1_macro": 0.8256606047152643,
+      "f1_weighted": 0.8757341728537142,
+      "threshold": 0.15628571428571428
+    }
+  },
+  {
+    "task_name": "affected_kpis",
+    "primary_metric": "f1_macro",
+    "group_split": true,
+    "grouping_strategy": "overlapping_time_intervals",
+    "cross_validation_folds": 5,
+    "sample_counts": {
+      "train": 881,
+      "validation": 123,
+      "test": 231
+    },
+    "group_count": 84,
+    "cv_candidate_results": [
+      {
+        "model_name": "one_vs_rest_logistic_regression",
+        "estimator": "one_vs_rest_logistic_regression",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.3929635336414997,
+          "f1_macro_mean": 0.7485215356449826,
+          "f1_micro_mean": 0.8444618109227726,
+          "f1_weighted_mean": 0.8594086072823484,
+          "precision_macro_mean": 0.7425157631340619,
+          "recall_macro_mean": 0.8301321746818624,
+          "exact_match_std": 0.16274918677867273,
+          "f1_macro_std": 0.0703955760870414,
+          "f1_micro_std": 0.0386716199970345,
+          "f1_weighted_std": 0.03214548576975144,
+          "precision_macro_std": 0.06847161099824511,
+          "recall_macro_std": 0.05336593539753004
+        }
+      },
+      {
+        "model_name": "one_vs_rest_logistic_regression",
+        "estimator": "one_vs_rest_logistic_regression",
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.39743836671802774,
+          "f1_macro_mean": 0.768443729790138,
+          "f1_micro_mean": 0.8631694789042562,
+          "f1_weighted_mean": 0.8752323732223433,
+          "precision_macro_mean": 0.7569038971644951,
+          "recall_macro_mean": 0.8430480650034406,
+          "exact_match_std": 0.14076155155515524,
+          "f1_macro_std": 0.05564750266807093,
+          "f1_micro_std": 0.026873429773504588,
+          "f1_weighted_std": 0.022918740432377047,
+          "precision_macro_std": 0.059582053920531244,
+          "recall_macro_std": 0.03988787129623179
+        }
+      },
+      {
+        "model_name": "one_vs_rest_logistic_regression",
+        "estimator": "one_vs_rest_logistic_regression",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.3985554699537751,
+          "f1_macro_mean": 0.7699781637645681,
+          "f1_micro_mean": 0.8718186155067078,
+          "f1_weighted_mean": 0.8812106494614629,
+          "precision_macro_mean": 0.7633957966698138,
+          "recall_macro_mean": 0.8200067613327858,
+          "exact_match_std": 0.13807869188473418,
+          "f1_macro_std": 0.06230368093192979,
+          "f1_micro_std": 0.025692031733691643,
+          "f1_weighted_std": 0.018212396025563907,
+          "precision_macro_std": 0.07181463802377315,
+          "recall_macro_std": 0.047450168552847005
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": 12,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.1260015408320493,
+          "f1_macro_mean": 0.6183840531304752,
+          "f1_micro_mean": 0.7595086958048932,
+          "f1_weighted_mean": 0.7541332409759323,
+          "precision_macro_mean": 0.6728928031630372,
+          "recall_macro_mean": 0.7205506558584613,
+          "exact_match_std": 0.044091495346278924,
+          "f1_macro_std": 0.06225415521046402,
+          "f1_micro_std": 0.0427746675638008,
+          "f1_weighted_std": 0.034348453683245565,
+          "precision_macro_std": 0.12342096398856554,
+          "recall_macro_std": 0.024577842694034624
+        }
+      },
+      {
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": null,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.1260015408320493,
+          "f1_macro_mean": 0.6183840531304752,
+          "f1_micro_mean": 0.7595086958048932,
+          "f1_weighted_mean": 0.7541332409759323,
+          "precision_macro_mean": 0.6728928031630372,
+          "recall_macro_mean": 0.7205506558584613,
+          "exact_match_std": 0.044091495346278924,
+          "f1_macro_std": 0.06225415521046402,
+          "f1_micro_std": 0.0427746675638008,
+          "f1_weighted_std": 0.034348453683245565,
+          "precision_macro_std": 0.12342096398856554,
+          "recall_macro_std": 0.024577842694034624
+        }
+      },
+      {
+        "model_name": "classifier_chain",
+        "estimator": "classifier_chain",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.47804956343091937,
+          "f1_macro_mean": 0.7601621315734168,
+          "f1_micro_mean": 0.8566914116705757,
+          "f1_weighted_mean": 0.8670222379203171,
+          "precision_macro_mean": 0.7597671971292348,
+          "recall_macro_mean": 0.8293756048745667,
+          "exact_match_std": 0.14571895682646463,
+          "f1_macro_std": 0.07597823541291476,
+          "f1_micro_std": 0.04049292724539927,
+          "f1_weighted_std": 0.03328668212971902,
+          "precision_macro_std": 0.07160431540821736,
+          "recall_macro_std": 0.04745049516786589
+        }
+      },
+      {
+        "model_name": "classifier_chain",
+        "estimator": "classifier_chain",
+        "parameters": {
+          "C": 1.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.48370570107858246,
+          "f1_macro_mean": 0.7577324595062931,
+          "f1_micro_mean": 0.8603438257093483,
+          "f1_weighted_mean": 0.8714197320253032,
+          "precision_macro_mean": 0.7563675255275243,
+          "recall_macro_mean": 0.8084099376764294,
+          "exact_match_std": 0.13227723441462236,
+          "f1_macro_std": 0.07974263744727161,
+          "f1_micro_std": 0.039101473364407856,
+          "f1_weighted_std": 0.029593419947553726,
+          "precision_macro_std": 0.07967897090694843,
+          "recall_macro_std": 0.06522076276914582
+        }
+      },
+      {
+        "model_name": "classifier_chain",
+        "estimator": "classifier_chain",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.4927580893682588,
+          "f1_macro_mean": 0.7601188972053599,
+          "f1_micro_mean": 0.8640015691216935,
+          "f1_weighted_mean": 0.8736448609347729,
+          "precision_macro_mean": 0.7668062559805475,
+          "recall_macro_mean": 0.7918021358483418,
+          "exact_match_std": 0.1457565910615456,
+          "f1_macro_std": 0.08155243184656649,
+          "f1_micro_std": 0.036050089968741844,
+          "f1_weighted_std": 0.03032706623641191,
+          "precision_macro_std": 0.08007082343315755,
+          "recall_macro_std": 0.08495833109794759
+        }
+      }
+    ],
+    "models": [
+      {
+        "task_name": "affected_kpis",
+        "model_name": "one_vs_rest_logistic_regression",
+        "estimator": "one_vs_rest_logistic_regression",
+        "parameters": {
+          "C": 10.0,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.3985554699537751,
+          "f1_macro_mean": 0.7699781637645681,
+          "f1_micro_mean": 0.8718186155067078,
+          "f1_weighted_mean": 0.8812106494614629,
+          "precision_macro_mean": 0.7633957966698138,
+          "recall_macro_mean": 0.8200067613327858,
+          "exact_match_std": 0.13807869188473418,
+          "f1_macro_std": 0.06230368093192979,
+          "f1_micro_std": 0.025692031733691643,
+          "f1_weighted_std": 0.018212396025563907,
+          "precision_macro_std": 0.07181463802377315,
+          "recall_macro_std": 0.047450168552847005
+        },
+        "validation_metrics": {
+          "precision_macro": 0.9365895679546816,
+          "recall_macro": 0.9262561274509804,
+          "f1_macro": 0.9223434621866108,
+          "f1_micro": 0.9533362407326647,
+          "f1_weighted": 0.9553133461070186,
+          "exact_match": 0.6747967479674797
+        },
+        "test_metrics": {
+          "precision_macro": 0.881145625856214,
+          "recall_macro": 0.8989546562816882,
+          "f1_macro": 0.8773711450732103,
+          "f1_micro": 0.9050931119587167,
+          "f1_weighted": 0.9086934971495175,
+          "exact_match": 0.44155844155844154
+        },
+        "decision_thresholds": [
+          0.2291000485420227,
+          0.6857719421386719,
+          0.20315968990325928,
+          0.5033400654792786,
+          0.37011122703552246,
+          0.37011122703552246,
+          0.9736803770065308,
+          0.9736803770065308,
+          0.003877517767250538,
+          0.5,
+          0.5,
+          0.2291000485420227,
+          0.3490864038467407,
+          0.5838990807533264,
+          0.20315968990325928,
+          0.003877517767250538
+        ],
+        "selected": true,
+        "artifact_path": "results\\models\\affected_kpis\\one_vs_rest_logistic_regression\\model_bundle.joblib"
+      },
+      {
+        "task_name": "affected_kpis",
+        "model_name": "random_forest",
+        "estimator": "random_forest",
+        "parameters": {
+          "max_depth": 12,
+          "min_samples_leaf": 2,
+          "n_estimators": 100
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.1260015408320493,
+          "f1_macro_mean": 0.6183840531304752,
+          "f1_micro_mean": 0.7595086958048932,
+          "f1_weighted_mean": 0.7541332409759323,
+          "precision_macro_mean": 0.6728928031630372,
+          "recall_macro_mean": 0.7205506558584613,
+          "exact_match_std": 0.044091495346278924,
+          "f1_macro_std": 0.06225415521046402,
+          "f1_micro_std": 0.0427746675638008,
+          "f1_weighted_std": 0.034348453683245565,
+          "precision_macro_std": 0.12342096398856554,
+          "recall_macro_std": 0.024577842694034624
+        },
+        "validation_metrics": {
+          "precision_macro": 0.8479781783575518,
+          "recall_macro": 0.9229621275892677,
+          "f1_macro": 0.8675900406662826,
+          "f1_micro": 0.896580483736447,
+          "f1_weighted": 0.9085667446049739,
+          "exact_match": 0.1951219512195122
+        },
+        "test_metrics": null,
+        "decision_thresholds": [
+          0.4545883005883005,
+          0.7673531746031744,
+          0.23666666666666672,
+          0.28798160173160176,
+          0.20230494505494506,
+          0.20230494505494506,
+          0.9799285714285716,
+          0.9799285714285716,
+          0.3428888888888889,
+          0.5,
+          0.5,
+          0.4545883005883005,
+          0.31416666666666665,
+          0.682924297924298,
+          0.23666666666666672,
+          0.3428888888888889
+        ],
+        "selected": false,
+        "artifact_path": "results\\models\\affected_kpis\\random_forest\\model_bundle.joblib"
+      },
+      {
+        "task_name": "affected_kpis",
+        "model_name": "classifier_chain",
+        "estimator": "classifier_chain",
+        "parameters": {
+          "C": 0.1,
+          "class_weight": "balanced"
+        },
+        "cv_metrics": {
+          "exact_match_mean": 0.47804956343091937,
+          "f1_macro_mean": 0.7601621315734168,
+          "f1_micro_mean": 0.8566914116705757,
+          "f1_weighted_mean": 0.8670222379203171,
+          "precision_macro_mean": 0.7597671971292348,
+          "recall_macro_mean": 0.8293756048745667,
+          "exact_match_std": 0.14571895682646463,
+          "f1_macro_std": 0.07597823541291476,
+          "f1_micro_std": 0.04049292724539927,
+          "f1_weighted_std": 0.03328668212971902,
+          "precision_macro_std": 0.07160431540821736,
+          "recall_macro_std": 0.04745049516786589
+        },
+        "validation_metrics": {
+          "precision_macro": 0.893694378618114,
+          "recall_macro": 0.9118925168381959,
+          "f1_macro": 0.8846233292831513,
+          "f1_micro": 0.9319057815845825,
+          "f1_weighted": 0.9360515673894043,
+          "exact_match": 0.4634146341463415
+        },
+        "test_metrics": null,
+        "decision_thresholds": [
+          0.32285372095745246,
+          0.7400112471565882,
+          0.080223696689927,
+          0.07345140323008953,
+          0.08128940875537309,
+          0.3597371091311753,
+          0.9743308970829919,
+          0.9641967010583085,
+          0.15640656097529967,
+          0.5,
+          0.5,
+          0.044110034024555565,
+          0.7622213568252635,
+          0.8030163362131252,
+          0.2816441243986471,
+          0.08530174511879726
+        ],
+        "selected": false,
+        "artifact_path": "results\\models\\affected_kpis\\classifier_chain\\model_bundle.joblib"
+      }
+    ],
+    "selected_model": "one_vs_rest_logistic_regression",
+    "test_metrics": {
+      "precision_macro": 0.881145625856214,
+      "recall_macro": 0.8989546562816882,
+      "f1_macro": 0.8773711450732103,
+      "f1_micro": 0.9050931119587167,
+      "f1_weighted": 0.9086934971495175,
+      "exact_match": 0.44155844155844154
+    }
+  }
+]

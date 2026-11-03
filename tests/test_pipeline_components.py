@@ -1,5 +1,6 @@
 """Focused tests for train-only preprocessing and artifact-based inference."""
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,6 +25,7 @@ from src.preprocessing.splitting import TaskSplits
 from pipelines.train import run_training_pipeline
 from src.models.experiments import run_task_model_comparison
 from pipelines.train_models import run_model_comparison_pipeline
+from src.models.estimators import SafeBinaryLogisticRegression
 
 
 class PipelineComponentTests(unittest.TestCase):
@@ -134,6 +136,45 @@ class PipelineComponentTests(unittest.TestCase):
             feature_names[:4],
             ("RSRP__mean", "UL_SNR__mean", "RSRP__std", "UL_SNR__std"),
         )
+
+    def test_window_summary_supports_robust_anomaly_type_statistics(self) -> None:
+        values = np.array([[[1.0, 4.0], [3.0, 8.0], [5.0, 12.0]]])
+        selected_statistics = (
+            "mean",
+            "median",
+            "q10",
+            "q90",
+            "first",
+            "last",
+            "delta",
+            "iqr",
+        )
+        matrix, feature_names = summarize_windows(
+            values,
+            ("RSRP", "UL_SNR"),
+            selected_statistics,
+        )
+
+        self.assertEqual(matrix.shape, (1, 16))
+        self.assertEqual(feature_names[:2], ("RSRP__mean", "UL_SNR__mean"))
+        self.assertEqual(feature_names[-2:], ("RSRP__iqr", "UL_SNR__iqr"))
+        self.assertTrue(np.isfinite(matrix).all())
+
+    def test_safe_binary_logistic_regression_handles_constant_label(self) -> None:
+        features = np.array([[0.0], [1.0], [2.0]])
+        for label in (0, 1):
+            estimator = SafeBinaryLogisticRegression().fit(
+                features,
+                np.full(3, label),
+            )
+            np.testing.assert_array_equal(
+                estimator.predict(features),
+                np.full(3, label),
+            )
+            np.testing.assert_allclose(
+                estimator.predict_proba(features)[:, label],
+                np.ones(3),
+            )
 
     def test_all_four_training_branches_save_independent_artifacts(self) -> None:
         rows = []
@@ -274,6 +315,47 @@ class PipelineComponentTests(unittest.TestCase):
             },
         }
         with tempfile.TemporaryDirectory() as temporary_directory:
+            previous_task_directory = (
+                Path(temporary_directory) / "anomaly_type"
+            )
+            previous_task_directory.mkdir()
+            (previous_task_directory / "comparison.json").write_text(
+                json.dumps(
+                    {
+                        "task_name": "anomaly_type",
+                        "selected_model": "svm",
+                        "group_split": True,
+                        "grouping_strategy": "overlapping_time_intervals",
+                        "cross_validation_folds": 2,
+                        "group_count": 12,
+                        "models": [
+                            {
+                                "model_name": "svm",
+                                "estimator": "svm",
+                                "parameters": {},
+                                "cv_metrics": {
+                                    "f1_macro_mean": 0.5,
+                                    "f1_macro_std": 0.0,
+                                    "precision_macro_mean": 0.5,
+                                    "recall_macro_mean": 0.5,
+                                },
+                                "validation_metrics": {
+                                    "f1_macro": 0.5,
+                                    "f1_micro": 0.5,
+                                    "f1_weighted": 0.5,
+                                    "precision_macro": 0.5,
+                                    "recall_macro": 0.5,
+                                },
+                                "test_metrics": {"f1_macro": 0.5},
+                                "decision_thresholds": [],
+                                "selected": True,
+                                "artifact_path": "anomaly_type/svm/model_bundle.joblib",
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
             results = run_model_comparison_pipeline(
                 pd.DataFrame(rows),
                 project_config,
@@ -287,6 +369,25 @@ class PipelineComponentTests(unittest.TestCase):
             self.assertEqual(len(results), 1)
             self.assertEqual(results[0]["task_name"], "binary_detection")
             self.assertTrue(results[0]["group_split"])
+            comparison = pd.read_csv(comparison_path)
+            self.assertIn("cv_precision_macro_mean", comparison.columns)
+            self.assertIn("cv_recall_macro_mean", comparison.columns)
+            self.assertGreaterEqual(
+                float(comparison.loc[0, "cv_precision_macro_mean"]), 0
+            )
+            self.assertGreaterEqual(
+                float(comparison.loc[0, "cv_recall_macro_mean"]), 0
+            )
+            self.assertEqual(
+                set(comparison["task_name"]),
+                {"binary_detection", "anomaly_type"},
+            )
+            consolidated = json.loads(
+                (Path(temporary_directory) / "comparison.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            self.assertEqual(len(consolidated), 2)
 
     def test_cv_model_selection_saves_test_metrics_only_for_selected_model(self) -> None:
         def make_task_splits(task_name: str) -> TaskSplits:
@@ -312,7 +413,11 @@ class PipelineComponentTests(unittest.TestCase):
                 y_train = np.tile(np.array([0, 0, 1, 1]), (n_train, 1))
                 y_holdout = np.tile(np.array([0, 0, 1, 1]), (n_holdout, 1))
             elif task_name == "affected_kpis":
-                labels = [("RSRP",), ("DL_MCS",), ("RSRP", "DL_MCS")]
+                labels = [
+                    ("RSRP", "RX_Bytes", "TX_Bytes"),
+                    ("DL_MCS", "RX_Bytes", "TX_Bytes"),
+                    ("RSRP", "DL_MCS", "RX_Bytes", "TX_Bytes"),
+                ]
                 y_train = np.empty(n_train, dtype=object)
                 y_holdout = np.empty(n_holdout, dtype=object)
                 y_train[:] = [labels[index % 3] for index in range(n_train)]
