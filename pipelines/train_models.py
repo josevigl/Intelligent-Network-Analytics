@@ -48,10 +48,20 @@ def _comparison_rows(
                     ),
                     "cv_f1_macro_mean": cv_metrics.get("f1_macro_mean"),
                     "cv_f1_macro_std": cv_metrics.get("f1_macro_std"),
+                    "cv_precision_macro_mean": cv_metrics.get(
+                        "precision_macro_mean"
+                    ),
+                    "cv_recall_macro_mean": cv_metrics.get("recall_macro_mean"),
                     "validation_f1_macro": validation_metrics.get("f1_macro"),
                     "validation_f1_micro": validation_metrics.get("f1_micro"),
                     "validation_f1_weighted": validation_metrics.get(
                         "f1_weighted"
+                    ),
+                    "validation_precision_macro": validation_metrics.get(
+                        "precision_macro"
+                    ),
+                    "validation_recall_macro": validation_metrics.get(
+                        "recall_macro"
                     ),
                     "test_f1_macro": test_metrics.get("f1_macro"),
                     "test_f1_micro": test_metrics.get("f1_micro"),
@@ -76,6 +86,7 @@ def run_model_comparison_pipeline(
     model_config: dict[str, Any],
     artifact_directory: str | Path,
     task_names: list[str] | tuple[str, ...] | None = None,
+    evaluate_test: bool = True,
 ) -> list[dict[str, Any]]:
     selected_tasks = tuple(task_names or TASK_NAMES)
     unknown = set(selected_tasks) - set(TASK_NAMES)
@@ -106,17 +117,39 @@ def run_model_comparison_pipeline(
             project_config,
             model_config,
             artifact_directory,
+            evaluate_test=evaluate_test,
         )
         results.append(result)
         print(
-            f"Selected {result['selected_model']} for {task_name}; "
+            f"Selected {result['selected_model']} for {task_name} "
+            f"using {result['selection_source']}; "
             f"test metrics={result['test_metrics']}",
             flush=True,
         )
 
     output_directory = Path(artifact_directory)
     output_directory.mkdir(parents=True, exist_ok=True)
-    rows = _comparison_rows(results)
+    persisted_results: dict[str, dict[str, Any]] = {}
+    for existing_task in TASK_NAMES:
+        comparison_path = output_directory / existing_task / "comparison.json"
+        if comparison_path.is_file():
+            with comparison_path.open("r", encoding="utf-8") as file:
+                task_result = json.load(file)
+            if not isinstance(task_result, dict):
+                raise ValueError(
+                    f"Task comparison must be a JSON object: {comparison_path}"
+                )
+            persisted_results[existing_task] = task_result
+    persisted_results.update(
+        {result["task_name"]: result for result in results}
+    )
+    consolidated_results = [
+        persisted_results[task_name]
+        for task_name in TASK_NAMES
+        if task_name in persisted_results
+    ]
+
+    rows = _comparison_rows(consolidated_results)
     if rows:
         comparison_path = output_directory / "comparison.csv"
         with comparison_path.open(
@@ -128,7 +161,7 @@ def run_model_comparison_pipeline(
     with (output_directory / "comparison.json").open(
         "w", encoding="utf-8"
     ) as file:
-        json.dump(results, file, ensure_ascii=False, indent=2)
+        json.dump(consolidated_results, file, ensure_ascii=False, indent=2)
         file.write("\n")
     return results
 
@@ -144,6 +177,11 @@ def main() -> None:
         help="Source dataset split. Keep this at train; holdouts are created locally.",
     )
     parser.add_argument("--output", type=Path, default=None)
+    parser.add_argument(
+        "--skip-test",
+        action="store_true",
+        help="Do not evaluate the held-out test partition during experimentation.",
+    )
     parser.add_argument("--task", action="append", choices=TASK_NAMES, dest="tasks")
     args = parser.parse_args()
 
@@ -161,6 +199,7 @@ def main() -> None:
         model_config,
         output_directory,
         args.tasks,
+        evaluate_test=not args.skip_test,
     )
 
 

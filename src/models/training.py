@@ -12,7 +12,25 @@ from src.evaluation.metrics import summarize_task_metrics
 from src.preprocessing.pipeline import PreprocessedTask
 
 
-WINDOW_STATISTICS = ("mean", "std", "min", "max", "range", "slope")
+WINDOW_STATISTICS = (
+    "mean",
+    "std",
+    "min",
+    "max",
+    "range",
+    "slope",
+    "q10",
+    "q25",
+    "median",
+    "q75",
+    "q90",
+    "first",
+    "last",
+    "delta",
+    "iqr",
+)
+
+DEFAULT_WINDOW_STATISTICS = WINDOW_STATISTICS[:6]
 
 
 @dataclass(frozen=True)
@@ -34,6 +52,7 @@ class ModelTrainingResult:
 def summarize_windows(
     X: np.ndarray,
     channel_names: tuple[str, ...] | list[str] | None = None,
+    statistics: tuple[str, ...] | list[str] | None = None,
 ) -> tuple[np.ndarray, tuple[str, ...]]:
     """Create the same six per-window summaries used by the EDA forests."""
     values = np.asarray(X, dtype=np.float64)
@@ -51,6 +70,18 @@ def summarize_windows(
         channel_names = tuple(channel_names)
     if len(channel_names) != values.shape[2]:
         raise ValueError("channel_names must match the number of input features.")
+    selected_statistics = tuple(
+        DEFAULT_WINDOW_STATISTICS if statistics is None else statistics
+    )
+    if not selected_statistics:
+        raise ValueError("At least one window statistic must be selected.")
+    if len(set(selected_statistics)) != len(selected_statistics):
+        raise ValueError("Window statistics must be unique.")
+    unknown_statistics = set(selected_statistics) - set(WINDOW_STATISTICS)
+    if unknown_statistics:
+        raise ValueError(
+            f"Unknown window statistics: {sorted(unknown_statistics)}."
+        )
 
     means = values.mean(axis=1)
     standard_deviations = values.std(axis=1)
@@ -68,11 +99,24 @@ def summarize_windows(
         "max": maxima,
         "range": maxima - minima,
         "slope": slopes,
+        "q10": np.quantile(values, 0.10, axis=1),
+        "q25": np.quantile(values, 0.25, axis=1),
+        "median": np.median(values, axis=1),
+        "q75": np.quantile(values, 0.75, axis=1),
+        "q90": np.quantile(values, 0.90, axis=1),
+        "first": values[:, 0, :],
+        "last": values[:, -1, :],
+        "delta": values[:, -1, :] - values[:, 0, :],
+        "iqr": np.quantile(values, 0.75, axis=1)
+        - np.quantile(values, 0.25, axis=1),
     }
-    matrix = np.concatenate(list(summaries.values()), axis=1).astype(np.float32)
+    matrix = np.concatenate(
+        [summaries[name] for name in selected_statistics],
+        axis=1,
+    ).astype(np.float32)
     feature_names = tuple(
         f"{channel}__{statistic}"
-        for statistic in summaries
+        for statistic in selected_statistics
         for channel in channel_names
     )
     return matrix, feature_names

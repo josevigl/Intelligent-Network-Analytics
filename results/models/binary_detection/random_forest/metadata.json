@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "task_name": "binary_detection",
+  "sequence_length": 128,
+  "feature_channels": [
+    "RSRP",
+    "UL_SNR",
+    "UL_BLER",
+    "DL_BLER",
+    "RX_Bytes"
+  ],
+  "transformed_feature_names": [
+    "numeric__RSRP",
+    "numeric__UL_SNR",
+    "numeric__UL_BLER",
+    "numeric__DL_BLER",
+    "numeric__RX_Bytes"
+  ],
+  "model_feature_names": [
+    "numeric__RSRP__mean",
+    "numeric__UL_SNR__mean",
+    "numeric__UL_BLER__mean",
+    "numeric__DL_BLER__mean",
+    "numeric__RX_Bytes__mean",
+    "numeric__RSRP__std",
+    "numeric__UL_SNR__std",
+    "numeric__UL_BLER__std",
+    "numeric__DL_BLER__std",
+    "numeric__RX_Bytes__std",
+    "numeric__RSRP__min",
+    "numeric__UL_SNR__min",
+    "numeric__UL_BLER__min",
+    "numeric__DL_BLER__min",
+    "numeric__RX_Bytes__min",
+    "numeric__RSRP__max",
+    "numeric__UL_SNR__max",
+    "numeric__UL_BLER__max",
+    "numeric__DL_BLER__max",
+    "numeric__RX_Bytes__max",
+    "numeric__RSRP__range",
+    "numeric__UL_SNR__range",
+    "numeric__UL_BLER__range",
+    "numeric__DL_BLER__range",
+    "numeric__RX_Bytes__range",
+    "numeric__RSRP__slope",
+    "numeric__UL_SNR__slope",
+    "numeric__UL_BLER__slope",
+    "numeric__DL_BLER__slope",
+    "numeric__RX_Bytes__slope"
+  ],
+  "input_mode": "window_statistics",
+  "target_classes": [
+    "0",
+    "1"
+  ],
+  "config": {
+    "project": {
+      "project": {
+        "name": "Intelligent Network Analytics",
+        "test_size": 0.2,
+        "seed": 42
+      },
+      "graphics": {
+        "figsize": [
+          8,
+          5
+        ],
+        "style": "dark_background",
+        "palette": [
+          "#004D98",
+          "#A50044"
+        ],
+        "categorical_palette": [
+          "#004D98",
+          "#A50044",
+          "#4C9F70",
+          "#FFC857",
+          "#7A68A6",
+          "#FF7F50",
+          "#37A2DA",
+          "#E6B422",
+          "#00A6A6",
+          "#D45087",
+          "#8B6D5C"
+        ],
+        "normal_color": "#4C9F70",
+        "anomalous_color": "#A50044",
+        "edgecolor": "white",
+        "alpha": 1,
+        "confidence_alpha": 0.16,
+        "grid_color": "#344050",
+        "bg_color": "#000000",
+        "paper_color": "#000000",
+        "font_color": "white"
+      },
+      "output": {
+        "submission_path": "results/predictions",
+        "figures_path": "results/figures",
+        "model_artifacts_path": "results/models"
+      },
+      "training": {
+        "validation_size": 0.1,
+        "max_parallel_tasks": 1,
+        "random_forest": {
+          "n_estimators": 100,
+          "max_depth": 14,
+          "min_samples_leaf": 2,
+          "max_temporal_training_timesteps": 150000
+        }
+      },
+      "preprocessing": {
+        "sequence_length": 128,
+        "categorical_missing_value": "__MISSING__",
+        "selected_kpis": {
+          "binary_detection": [
+            "RSRP",
+            "UL_SNR",
+            "UL_BLER",
+            "DL_BLER",
+            "RX_Bytes"
+          ],
+          "anomaly_type": [
+            "RSRP",
+            "UL_SNR",
+            "DL_MCS",
+            "UL_NPRB",
+            "PRBs_DL_Current",
+            "DL_BLER",
+            "UL_NumberOfPackets",
+            "Estimated_UL_Buffer",
+            "PRB_Utilization_UL"
+          ],
+          "temporal_localization": [
+            "RSRP",
+            "TX_Bytes",
+            "UL_NPRB",
+            "DL_BLER",
+            "UL_SNR",
+            "RX_Bytes",
+            "PRB_Utilization_DL",
+            "DL_MCS",
+            "UL_NumberOfPackets",
+            "Estimated_UL_Buffer",
+            "UL_BLER"
+          ],
+          "affected_kpis": [
+            "RSRP",
+            "DL_MCS",
+            "DL_Protocol",
+            "UL_SNR",
+            "UL_MCS",
+            "UL_NumberOfPackets",
+            "PRB_Utilization_UL"
+          ]
+        }
+      }
+    },
+    "model_selection": {
+      "cross_validation": {
+        "folds": 5,
+        "shuffle_seed": 42
+      },
+      "selection": {
+        "primary_metric": "f1_macro",
+        "threshold_objective": "f1",
+        "threshold_fallback": 0.5
+      },
+      "models": {
+        "binary_detection": {
+          "logistic_regression": {
+            "estimator": "logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "xgboost": {
+            "estimator": "xgboost",
+            "parameter_grid": {
+              "n_estimators": [
+                150
+              ],
+              "max_depth": [
+                4,
+                7
+              ],
+              "learning_rate": [
+                0.05
+              ]
+            }
+          }
+        },
+        "anomaly_type": {
+          "logistic_regression": {
+            "estimator": "logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "svm": {
+            "estimator": "svm",
+            "parameter_grid": {
+              "C": [
+                0.5,
+                2.0
+              ],
+              "kernel": [
+                "rbf"
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "xgboost": {
+            "estimator": "xgboost",
+            "parameter_grid": {
+              "n_estimators": [
+                150
+              ],
+              "max_depth": [
+                4,
+                7
+              ],
+              "learning_rate": [
+                0.05
+              ]
+            }
+          }
+        },
+        "temporal_localization": {
+          "logistic_regression": {
+            "estimator": "logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "xgboost": {
+            "estimator": "xgboost",
+            "parameter_grid": {
+              "n_estimators": [
+                150
+              ],
+              "max_depth": [
+                4,
+                7
+              ],
+              "learning_rate": [
+                0.05
+              ]
+            }
+          }
+        },
+        "affected_kpis": {
+          "one_vs_rest_logistic_regression": {
+            "estimator": "one_vs_rest_logistic_regression",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          },
+          "random_forest": {
+            "estimator": "random_forest",
+            "parameter_grid": {
+              "n_estimators": [
+                100
+              ],
+              "max_depth": [
+                12,
+                null
+              ],
+              "min_samples_leaf": [
+                2
+              ]
+            }
+          },
+          "classifier_chain": {
+            "estimator": "classifier_chain",
+            "parameter_grid": {
+              "C": [
+                0.1,
+                1.0,
+                10.0
+              ],
+              "class_weight": [
+                "balanced"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "validation_metrics": {
+    "accuracy": 0.9916746717899456,
+    "precision_macro": 0.9761604136604136,
+    "recall_macro": 0.9053175699882287,
+    "f1_micro": 0.9916746717899456,
+    "f1_macro": 0.9376589275843008,
+    "f1_weighted": 0.9913402089775267
+  },
+  "library_versions": {
+    "python": "3.11.1",
+    "scikit_learn": "1.9.1"
+  },
+  "model_name": "random_forest",
+  "model_parameters": {
+    "max_depth": null,
+    "min_samples_leaf": 2,
+    "n_estimators": 100
+  },
+  "decision_thresholds": [
+    0.6764883197298056
+  ],
+  "cv_metrics": {
+    "accuracy_mean": 0.9615048773935237,
+    "f1_macro_mean": 0.8537228278893807,
+    "f1_micro_mean": 0.9615048773935237,
+    "f1_weighted_mean": 0.9687309266893621,
+    "precision_macro_mean": 0.8544596777556512,
+    "recall_macro_mean": 0.8873343197344251,
+    "accuracy_std": 0.05096029987256094,
+    "f1_macro_std": 0.1245006655775732,
+    "f1_micro_std": 0.05096029987256094,
+    "f1_weighted_std": 0.03725645116345364,
+    "precision_macro_std": 0.14653146418124324,
+    "recall_macro_std": 0.04929649977361558
+  },
+  "test_metrics": {
+    "accuracy": 0.9835340753163592,
+    "precision_macro": 0.9799587962238565,
+    "recall_macro": 0.8056522347727267,
+    "f1_micro": 0.9835340753163592,
+    "f1_macro": 0.8718887855213414,
+    "f1_weighted": 0.9817106996868473
+  },
+  "selected": true
+}

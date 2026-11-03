@@ -1,0 +1,309 @@
+{
+  "task_name": "temporal_localization",
+  "primary_metric": "f1_macro",
+  "group_split": true,
+  "grouping_strategy": "overlapping_time_intervals",
+  "cross_validation_folds": 3,
+  "sample_counts": {
+    "train": 844,
+    "validation": 149,
+    "test": 242
+  },
+  "group_count": 84,
+  "cv_candidate_results": [
+    {
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 0.1,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.6995106988484322,
+        "f1_macro_mean": 0.6729340425750476,
+        "f1_micro_mean": 0.6995106988484322,
+        "f1_weighted_mean": 0.7127543695335768,
+        "precision_macro_mean": 0.678626568547784,
+        "recall_macro_mean": 0.7136006317917526,
+        "accuracy_std": 0.03451866230233151,
+        "f1_macro_std": 0.04545990514414323,
+        "f1_micro_std": 0.03451866230233151,
+        "f1_weighted_std": 0.032613509564525314,
+        "precision_macro_std": 0.046493377854657306,
+        "recall_macro_std": 0.05379003569689446
+      }
+    },
+    {
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 1.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.7066987653284348,
+        "f1_macro_mean": 0.6813744560512389,
+        "f1_micro_mean": 0.7066987653284348,
+        "f1_weighted_mean": 0.7199022211366112,
+        "precision_macro_mean": 0.6859608266358744,
+        "recall_macro_mean": 0.7229335704120058,
+        "accuracy_std": 0.03604786564861263,
+        "f1_macro_std": 0.045045301117002494,
+        "f1_micro_std": 0.03604786564861263,
+        "f1_weighted_std": 0.03385992889999509,
+        "precision_macro_std": 0.04488526839438128,
+        "recall_macro_std": 0.05092335950799795
+      }
+    },
+    {
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 10.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.7074389914211214,
+        "f1_macro_mean": 0.6824634338525041,
+        "f1_micro_mean": 0.7074389914211214,
+        "f1_weighted_mean": 0.7207075206648902,
+        "precision_macro_mean": 0.6869609680486105,
+        "recall_macro_mean": 0.7243206350567575,
+        "accuracy_std": 0.0367014994324858,
+        "f1_macro_std": 0.04536082210262765,
+        "f1_micro_std": 0.0367014994324858,
+        "f1_weighted_std": 0.034382718981289764,
+        "precision_macro_std": 0.044890089847462136,
+        "recall_macro_std": 0.05059636825670249
+      }
+    },
+    {
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.7897348111226523,
+        "f1_macro_mean": 0.7631297512102195,
+        "f1_micro_mean": 0.7897348111226523,
+        "f1_weighted_mean": 0.7973592501533661,
+        "precision_macro_mean": 0.7611220093951822,
+        "recall_macro_mean": 0.79290134703808,
+        "accuracy_std": 0.0653816505718225,
+        "f1_macro_std": 0.06819533831687735,
+        "f1_micro_std": 0.0653816505718225,
+        "f1_weighted_std": 0.0584951670993587,
+        "precision_macro_std": 0.06065630144519584,
+        "recall_macro_std": 0.05609653957306592
+      }
+    },
+    {
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.7957612188956477,
+        "f1_macro_mean": 0.7682593754097594,
+        "f1_micro_mean": 0.7957612188956477,
+        "f1_weighted_mean": 0.8028010459687226,
+        "precision_macro_mean": 0.7666353797659208,
+        "recall_macro_mean": 0.7950494069032329,
+        "accuracy_std": 0.06995007506283256,
+        "f1_macro_std": 0.0739047370244361,
+        "f1_micro_std": 0.06995007506283256,
+        "f1_weighted_std": 0.06283436158989715,
+        "precision_macro_std": 0.06775631488069685,
+        "recall_macro_std": 0.06304795511908476
+      }
+    },
+    {
+      "model_name": "xgboost",
+      "estimator": "xgboost",
+      "parameters": {
+        "learning_rate": 0.05,
+        "max_depth": 4,
+        "n_estimators": 150
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.8456849827382333,
+        "f1_macro_mean": 0.8124884662040929,
+        "f1_micro_mean": 0.8456849827382333,
+        "f1_weighted_mean": 0.846871912103928,
+        "precision_macro_mean": 0.8074578866396575,
+        "recall_macro_mean": 0.8198081628148581,
+        "accuracy_std": 0.026231528705037994,
+        "f1_macro_std": 0.03713976323387097,
+        "f1_micro_std": 0.026231528705037994,
+        "f1_weighted_std": 0.02717192521478173,
+        "precision_macro_std": 0.033079880289987894,
+        "recall_macro_std": 0.04344412893563864
+      }
+    },
+    {
+      "model_name": "xgboost",
+      "estimator": "xgboost",
+      "parameters": {
+        "learning_rate": 0.05,
+        "max_depth": 7,
+        "n_estimators": 150
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.8353836227197399,
+        "f1_macro_mean": 0.8054027357974979,
+        "f1_micro_mean": 0.8353836227197399,
+        "f1_weighted_mean": 0.8387153122863898,
+        "precision_macro_mean": 0.7966717543414049,
+        "recall_macro_mean": 0.821743131451803,
+        "accuracy_std": 0.02867012377214508,
+        "f1_macro_std": 0.03813778093149859,
+        "f1_micro_std": 0.02867012377214508,
+        "f1_weighted_std": 0.02794880276093135,
+        "precision_macro_std": 0.036945790965246444,
+        "recall_macro_std": 0.04106875347120166
+      }
+    }
+  ],
+  "models": [
+    {
+      "task_name": "temporal_localization",
+      "model_name": "logistic_regression",
+      "estimator": "logistic_regression",
+      "parameters": {
+        "C": 10.0,
+        "class_weight": "balanced"
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.7074389914211214,
+        "f1_macro_mean": 0.6824634338525041,
+        "f1_micro_mean": 0.7074389914211214,
+        "f1_weighted_mean": 0.7207075206648902,
+        "precision_macro_mean": 0.6869609680486105,
+        "recall_macro_mean": 0.7243206350567575,
+        "accuracy_std": 0.0367014994324858,
+        "f1_macro_std": 0.04536082210262765,
+        "f1_micro_std": 0.0367014994324858,
+        "f1_weighted_std": 0.034382718981289764,
+        "precision_macro_std": 0.044890089847462136,
+        "recall_macro_std": 0.05059636825670249
+      },
+      "validation_metrics": {
+        "accuracy": 0.7846581375838926,
+        "precision_macro": 0.7565794097720957,
+        "recall_macro": 0.7022078115661231,
+        "f1_micro": 0.7846581375838926,
+        "f1_macro": 0.7181040595432523,
+        "f1_weighted": 0.7720396510059919,
+        "threshold": 0.21843887865543365
+      },
+      "test_metrics": null,
+      "decision_thresholds": [
+        0.21843887865543365
+      ],
+      "selected": false,
+      "artifact_path": "results\\models\\temporal_localization\\logistic_regression\\model_bundle.joblib"
+    },
+    {
+      "task_name": "temporal_localization",
+      "model_name": "random_forest",
+      "estimator": "random_forest",
+      "parameters": {
+        "max_depth": null,
+        "min_samples_leaf": 2,
+        "n_estimators": 100
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.7957612188956477,
+        "f1_macro_mean": 0.7682593754097594,
+        "f1_micro_mean": 0.7957612188956477,
+        "f1_weighted_mean": 0.8028010459687226,
+        "precision_macro_mean": 0.7666353797659208,
+        "recall_macro_mean": 0.7950494069032329,
+        "accuracy_std": 0.06995007506283256,
+        "f1_macro_std": 0.0739047370244361,
+        "f1_micro_std": 0.06995007506283256,
+        "f1_weighted_std": 0.06283436158989715,
+        "precision_macro_std": 0.06775631488069685,
+        "recall_macro_std": 0.06304795511908476
+      },
+      "validation_metrics": {
+        "accuracy": 0.9447357382550335,
+        "precision_macro": 0.9516646307561503,
+        "recall_macro": 0.9171473345880435,
+        "f1_micro": 0.9447357382550335,
+        "f1_macro": 0.9321127583714601,
+        "f1_weighted": 0.9436398229295386,
+        "threshold": 0.15628571428571428
+      },
+      "test_metrics": {
+        "accuracy": 0.885911673553719,
+        "precision_macro": 0.9131283243484769,
+        "recall_macro": 0.786410966612365,
+        "f1_micro": 0.885911673553719,
+        "f1_macro": 0.8256606047152643,
+        "f1_weighted": 0.8757341728537142,
+        "threshold": 0.15628571428571428
+      },
+      "decision_thresholds": [
+        0.15628571428571428
+      ],
+      "selected": true,
+      "artifact_path": "results\\models\\temporal_localization\\random_forest\\model_bundle.joblib"
+    },
+    {
+      "task_name": "temporal_localization",
+      "model_name": "xgboost",
+      "estimator": "xgboost",
+      "parameters": {
+        "learning_rate": 0.05,
+        "max_depth": 4,
+        "n_estimators": 150
+      },
+      "cv_metrics": {
+        "accuracy_mean": 0.8456849827382333,
+        "f1_macro_mean": 0.8124884662040929,
+        "f1_micro_mean": 0.8456849827382333,
+        "f1_weighted_mean": 0.846871912103928,
+        "precision_macro_mean": 0.8074578866396575,
+        "recall_macro_mean": 0.8198081628148581,
+        "accuracy_std": 0.026231528705037994,
+        "f1_macro_std": 0.03713976323387097,
+        "f1_micro_std": 0.026231528705037994,
+        "f1_weighted_std": 0.02717192521478173,
+        "precision_macro_std": 0.033079880289987894,
+        "recall_macro_std": 0.04344412893563864
+      },
+      "validation_metrics": {
+        "accuracy": 0.9415897651006712,
+        "precision_macro": 0.9375858519363292,
+        "recall_macro": 0.9227583644495768,
+        "f1_micro": 0.9415897651006712,
+        "f1_macro": 0.9297051635925412,
+        "f1_weighted": 0.9410866169623519,
+        "threshold": 0.306130975484848
+      },
+      "test_metrics": null,
+      "decision_thresholds": [
+        0.306130975484848
+      ],
+      "selected": false,
+      "artifact_path": "results\\models\\temporal_localization\\xgboost\\model_bundle.joblib"
+    }
+  ],
+  "selected_model": "random_forest",
+  "test_metrics": {
+    "accuracy": 0.885911673553719,
+    "precision_macro": 0.9131283243484769,
+    "recall_macro": 0.786410966612365,
+    "f1_micro": 0.885911673553719,
+    "f1_macro": 0.8256606047152643,
+    "f1_weighted": 0.8757341728537142,
+    "threshold": 0.15628571428571428
+  }
+}
