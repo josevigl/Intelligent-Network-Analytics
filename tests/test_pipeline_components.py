@@ -4,6 +4,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
@@ -26,9 +27,258 @@ from pipelines.train import run_training_pipeline
 from src.models.experiments import run_task_model_comparison
 from pipelines.train_models import run_model_comparison_pipeline
 from src.models.estimators import SafeBinaryLogisticRegression
+from pipelines.mlrun_components import (
+    _resolve_frame,
+    load_telecomts_component,
+    train_model_comparison_component,
+)
+from pipelines.mlrun_train import (
+    _selected_kpis,
+    _validate_source,
+    register_and_run_pipeline,
+)
 
 
 class PipelineComponentTests(unittest.TestCase):
+    def test_mlrun_loader_registers_only_source_train_split(self) -> None:
+        frame = pd.DataFrame(
+            {
+                "start_time": ["2026-01-01", "2026-01-02"],
+                "end_time": ["2026-01-01", "2026-01-02"],
+                "KPIs": [
+                    {"RSRP": [1, 2], "UL_SNR": [3, 4], "unused": [5, 6]},
+                    {"RSRP": [7, 8], "UL_SNR": [9, 10], "unused": [11, 12]},
+                ],
+                "anomalies": [{}, {}],
+                "QnA": ["unused", "unused"],
+            }
+        )
+
+        class Context:
+            def __init__(self) -> None:
+                self.datasets = []
+                self.results = {}
+                self.labels = {}
+
+            def log_dataset(self, **kwargs: object) -> None:
+                self.datasets.append(kwargs)
+
+            def log_result(self, key: str, value: object) -> None:
+                self.results[key] = value
+
+            def set_label(self, key: str, value: str) -> None:
+                self.labels[key] = value
+
+        context = Context()
+        with patch(
+            "pipelines.mlrun_components.load_training_frame",
+            return_value=frame,
+        ) as load_frame:
+            load_telecomts_component(
+                context,
+                split="train",
+                selected_kpis_json='["RSRP"]',
+            )
+            with self.assertRaisesRegex(ValueError, "only accepts"):
+                load_telecomts_component(context, split="test")
+
+        load_frame.assert_called_once_with("AliMaatouk/TelecomTS", "train")
+        self.assertEqual(context.datasets[0]["key"], "train_dataset")
+        artifact_frame = context.datasets[0]["df"]
+        self.assertEqual(
+            artifact_frame.columns.tolist(),
+            ["start_time", "end_time", "KPIs", "anomalies"],
+        )
+        self.assertEqual(artifact_frame.loc[0, "KPIs"], {"RSRP": [1, 2]})
+        self.assertEqual(context.datasets[0]["format"], "parquet")
+        self.assertEqual(context.results, {"rows": 2, "columns": 4})
+        self.assertEqual(context.labels["source_split"], "train")
+        self.assertEqual(context.labels["selected_kpi_count"], "1")
+
+    def test_mlrun_training_logs_metrics_candidate_artifacts_and_selected_model(
+        self,
+    ) -> None:
+        class DataItem:
+            def as_df(self) -> pd.DataFrame:
+                return pd.DataFrame({"value": [1]})
+
+        self.assertEqual(_resolve_frame(DataItem()).iloc[0, 0], 1)
+
+        class Context:
+            def __init__(self) -> None:
+                self.results = {}
+                self.artifacts = []
+                self.models = []
+                self.comparison_payload = None
+                self.labels = {}
+
+            def set_label(self, key: str, value: str) -> None:
+                self.labels[key] = value
+
+            def log_result(self, key: str, value: object) -> None:
+                self.results[key] = value
+
+            def log_artifact(self, **kwargs: object) -> SimpleNamespace:
+                self.artifacts.append(kwargs)
+                if kwargs["key"] == "comparison":
+                    self.comparison_payload = json.loads(
+                        Path(kwargs["local_path"]).read_text(encoding="utf-8")
+                    )
+                return SimpleNamespace(uri=f"store://test/{kwargs['key']}")
+
+            def log_model(self, **kwargs: object) -> SimpleNamespace:
+                self.models.append(kwargs)
+                return SimpleNamespace(uri="store://test/selected_model")
+
+        expected = {
+            "task_name": "binary_detection",
+            "cross_validation_folds": 2,
+            "sample_counts": {"train": 10, "validation": 2, "test": 2},
+            "models": [
+                {
+                    "model_name": "random_forest",
+                    "selected": True,
+                    "parameters": {"n_estimators": 10},
+                    "artifact_path": "",
+                    "cv_metrics": {"f1_macro_mean": 0.8},
+                    "validation_metrics": {"f1_macro": 0.75},
+                    "test_metrics": {"f1_macro": 0.7},
+                }
+            ],
+        }
+
+        def fake_comparison(
+            task_name: str,
+            splits: object,
+            project_config: dict[str, object],
+            model_config: dict[str, object],
+            artifact_directory: Path,
+            evaluate_test: bool,
+        ) -> dict[str, object]:
+            self.assertEqual(task_name, "binary_detection")
+            self.assertIsNotNone(splits)
+            self.assertEqual(project_config, {})
+            self.assertEqual(model_config, {})
+            self.assertTrue(evaluate_test)
+            bundle = artifact_directory / task_name / "random_forest"
+            bundle.mkdir(parents=True)
+            bundle_path = bundle / "model_bundle.joblib"
+            bundle_path.write_bytes(b"test model")
+            (bundle / "metadata.json").write_text("{}", encoding="utf-8")
+            (artifact_directory / task_name / "comparison.json").write_text(
+                "{}", encoding="utf-8"
+            )
+            expected["models"][0]["artifact_path"] = str(bundle_path)
+            return expected
+
+        context = Context()
+        with (
+            patch(
+                "pipelines.mlrun_components.prepare_task_data_component",
+                return_value=object(),
+            ),
+            patch(
+                "pipelines.mlrun_components.run_task_model_comparison",
+                side_effect=fake_comparison,
+            ),
+        ):
+            result = train_model_comparison_component(
+                context,
+                dataset=pd.DataFrame({"value": [1]}),
+                task_name="binary_detection",
+                project_config_json="{}",
+                model_config_json="{}",
+            )
+
+        self.assertEqual(result["selected_model"], "random_forest")
+        self.assertEqual(context.results["cv_f1_macro_mean"], 0.8)
+        self.assertEqual(context.results["validation_f1_macro"], 0.75)
+        self.assertEqual(context.results["test_f1_macro"], 0.7)
+        self.assertEqual(
+            context.results["random_forest_cv_f1_macro_mean"],
+            0.8,
+        )
+        self.assertEqual(
+            context.results["random_forest_parameters"],
+            '{"n_estimators": 10}',
+        )
+        self.assertEqual(len(context.artifacts), 3)
+        self.assertEqual(context.models[0]["key"], "selected_model")
+        self.assertEqual(
+            result["selected_model_uri"],
+            "store://test/selected_model",
+        )
+        self.assertEqual(
+            context.comparison_payload["models"][0]["artifact_path"],
+            "store://test/random_forest_bundle",
+        )
+        self.assertEqual(
+            context.models[0]["parameters"],
+            {"n_estimators": 10},
+        )
+
+    def test_mlrun_source_rejects_embedded_credentials(self) -> None:
+        _validate_source("git://github.com/example/project.git")
+        with self.assertRaisesRegex(ValueError, "credentials"):
+            _validate_source("https://user:secret@example.com/project.git")
+        with self.assertRaisesRegex(ValueError, "query parameters"):
+            _validate_source("https://example.com/project.zip?token=secret")
+
+    def test_mlrun_dataset_uses_only_kpis_for_requested_task_branches(self) -> None:
+        config = {
+            "preprocessing": {
+                "selected_kpis": {
+                    "binary_detection": ["RSRP", "UL_SNR"],
+                    "anomaly_type": ["RSRP", "DL_MCS"],
+                }
+            }
+        }
+        self.assertEqual(
+            _selected_kpis(config, ["anomaly_type", "binary_detection"]),
+            ["DL_MCS", "RSRP", "UL_SNR"],
+        )
+        with self.assertRaisesRegex(ValueError, "distinct"):
+            _selected_kpis(config, ["anomaly_type", "anomaly_type"])
+
+    def test_mlrun_launcher_registers_functions_and_submits_task_parameters(
+        self,
+    ) -> None:
+        project = unittest.mock.Mock()
+        project.run.return_value = SimpleNamespace(uid="run-123")
+        mlrun_module = SimpleNamespace(
+            get_or_create_project=unittest.mock.Mock(return_value=project)
+        )
+        project_config = {
+            "preprocessing": {
+                "selected_kpis": {"binary_detection": ["RSRP", "UL_SNR"]}
+            }
+        }
+
+        with patch.dict("sys.modules", {"mlrun": mlrun_module}):
+            run = register_and_run_pipeline(
+                source="git://github.com/example/project.git",
+                project_name="ina-test",
+                workflow_name="training",
+                base_image="mlrun/mlrun",
+                image=None,
+                dataset_name="example/dataset",
+                tasks=["binary_detection"],
+                project_config=project_config,
+                model_config={},
+                evaluate_test=False,
+                watch=False,
+            )
+
+        self.assertEqual(run.uid, "run-123")
+        self.assertEqual(project.set_function.call_count, 2)
+        self.assertEqual(project.set_function.return_value.save.call_count, 2)
+        project.build_image.assert_called_once_with()
+        run_arguments = project.run.call_args.kwargs["arguments"]
+        self.assertEqual(run_arguments["task_names"], ["binary_detection"])
+        self.assertEqual(run_arguments["selected_kpis_json"], '["RSRP", "UL_SNR"]')
+        self.assertFalse(run_arguments["evaluate_test"])
+        self.assertFalse(project.run.call_args.kwargs["watch"])
+
     def test_preprocessing_fits_only_train_and_ignores_unknown_category(self) -> None:
         splits = TaskSplits(
             task_name="binary_detection",

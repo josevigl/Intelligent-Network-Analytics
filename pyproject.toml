@@ -25,13 +25,14 @@ notebooks = [
     "matplotlib>=3.7",
     "seaborn>=0.13",
 ]
-mlrun = ["mlrun"]
+mlrun = ["mlrun[kfp18]>=1.8,<2"]
 test = ["pytest>=7.0"]
 
 [project.scripts]
 ina-train = "pipelines.train:main"
 ina-infer = "pipelines.inference:main"
 ina-train-models = "pipelines.train_models:main"
+ina-mlrun-train = "pipelines.mlrun_train:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
