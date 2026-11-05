@@ -134,13 +134,14 @@ def register_and_run_pipeline(
     project.set_workflow(
         name=workflow_name,
         workflow_path=workflow_path,
-        workflow_handler="training_pipeline",
+        handler="pipeline",
     )
     project.save()
     project.build_image()
 
     return project.run(
         name=workflow_name,
+        workflow_handler="pipeline",
         arguments={
             "dataset_name": dataset_name,
             "split": "train",

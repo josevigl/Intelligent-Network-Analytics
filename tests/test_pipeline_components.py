@@ -275,7 +275,7 @@ class PipelineComponentTests(unittest.TestCase):
         project.set_workflow.assert_called_once_with(
             name="training",
             workflow_path=str(Path("pipelines") / "mlrun_workflow.py"),
-            workflow_handler="training_pipeline",
+            handler="pipeline",
         )
         project.build_image.assert_called_once_with()
         run_arguments = project.run.call_args.kwargs["arguments"]
@@ -283,6 +283,10 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(run_arguments["selected_kpis_json"], '["RSRP", "UL_SNR"]')
         self.assertFalse(run_arguments["evaluate_test"])
         self.assertEqual(project.run.call_args.kwargs["name"], "training")
+        self.assertEqual(
+            project.run.call_args.kwargs["workflow_handler"],
+            "pipeline",
+        )
         self.assertFalse(project.run.call_args.kwargs["watch"])
 
     def test_preprocessing_fits_only_train_and_ignores_unknown_category(self) -> None:

@@ -13,7 +13,7 @@ from kfp import dsl
         "for each selected analytics objective."
     ),
 )
-def training_pipeline(
+def pipeline(
     dataset_name: str,
     split: str,
     selected_kpis_json: str,
