@@ -277,6 +277,7 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(run_arguments["task_names"], ["binary_detection"])
         self.assertEqual(run_arguments["selected_kpis_json"], '["RSRP", "UL_SNR"]')
         self.assertFalse(run_arguments["evaluate_test"])
+        self.assertEqual(project.run.call_args.kwargs["name"], "training")
         self.assertFalse(project.run.call_args.kwargs["watch"])
 
     def test_preprocessing_fits_only_train_and_ignores_unknown_category(self) -> None:

@@ -136,7 +136,7 @@ def register_and_run_pipeline(
     project.build_image()
 
     return project.run(
-        workflow=workflow_name,
+        name=workflow_name,
         arguments={
             "dataset_name": dataset_name,
             "split": "train",
