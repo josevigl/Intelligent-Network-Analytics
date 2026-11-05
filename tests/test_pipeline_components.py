@@ -272,6 +272,11 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(run.uid, "run-123")
         self.assertEqual(project.set_function.call_count, 2)
         self.assertEqual(project.set_function.return_value.save.call_count, 2)
+        project.set_workflow.assert_called_once_with(
+            name="training",
+            workflow_path=str(Path("pipelines") / "mlrun_workflow.py"),
+            workflow_handler="training_pipeline",
+        )
         project.build_image.assert_called_once_with()
         run_arguments = project.run.call_args.kwargs["arguments"]
         self.assertEqual(run_arguments["task_names"], ["binary_detection"])

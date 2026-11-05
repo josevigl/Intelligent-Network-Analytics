@@ -131,7 +131,11 @@ def register_and_run_pipeline(
         function.save(tag="latest")
 
     workflow_path = str(Path("pipelines") / "mlrun_workflow.py")
-    project.set_workflow(name=workflow_name, workflow_path=workflow_path)
+    project.set_workflow(
+        name=workflow_name,
+        workflow_path=workflow_path,
+        workflow_handler="training_pipeline",
+    )
     project.save()
     project.build_image()
 
