@@ -111,7 +111,9 @@ def register_and_run_pipeline(
         build_options["image"] = image
     project.build_config(**build_options)
 
-    component_path = str(Path("pipelines") / "mlrun_components.py")
+    component_path = str(
+        (repository_root / "pipelines" / "mlrun_components.py").resolve()
+    )
     for name, handler in (
         ("ina-telecomts-loader", "load_telecomts_component"),
         ("ina-model-comparison", "train_model_comparison_component"),
@@ -121,7 +123,6 @@ def register_and_run_pipeline(
             "func": component_path,
             "kind": "job",
             "handler": handler,
-            "with_repo": True,
         }
         if image is not None:
             function_options["image"] = image

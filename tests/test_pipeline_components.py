@@ -295,6 +295,22 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(run.uid, "run-123")
         self.assertEqual(project.set_function.call_count, 2)
         self.assertEqual(project.set_function.return_value.save.call_count, 2)
+        function_options = [
+            call.kwargs for call in project.set_function.call_args_list
+        ]
+        component_path = str(
+            (
+                Path(__file__).resolve().parents[1]
+                / "pipelines"
+                / "mlrun_components.py"
+            ).resolve()
+        )
+        self.assertTrue(
+            all(options["func"] == component_path for options in function_options)
+        )
+        self.assertTrue(
+            all("with_repo" not in options for options in function_options)
+        )
         project.set_workflow.assert_called_once_with(
             name="training",
             workflow_path=str(Path("pipelines") / "mlrun_workflow.py"),
