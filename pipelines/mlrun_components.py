@@ -230,7 +230,7 @@ def train_model_comparison_component(
                 "selected": str(candidate["selected"]).lower(),
             }
             bundle_artifact = context.log_artifact(
-                key=f"{candidate['model_name']}_bundle",
+                f"{candidate['model_name']}_bundle",
                 local_path=str(bundle_path),
                 labels=labels,
             )
@@ -244,7 +244,7 @@ def train_model_comparison_component(
                     f"Model metadata was not created: {manifest_path}"
                 )
             context.log_artifact(
-                key=f"{candidate['model_name']}_metadata",
+                f"{candidate['model_name']}_metadata",
                 local_path=str(manifest_path),
                 labels=labels,
             )
@@ -254,7 +254,7 @@ def train_model_comparison_component(
             json.dump(result, file, ensure_ascii=False, indent=2)
             file.write("\n")
         comparison_artifact = context.log_artifact(
-            key="comparison",
+            "comparison",
             local_path=str(comparison_path),
             labels={"task": task_name},
         )

@@ -152,13 +152,13 @@ class PipelineComponentTests(unittest.TestCase):
             def log_result(self, key: str, value: object) -> None:
                 self.results[key] = value
 
-            def log_artifact(self, **kwargs: object) -> SimpleNamespace:
-                self.artifacts.append(kwargs)
-                if kwargs["key"] == "comparison":
+            def log_artifact(self, item: str, **kwargs: object) -> SimpleNamespace:
+                self.artifacts.append({"item": item, **kwargs})
+                if item == "comparison":
                     self.comparison_payload = json.loads(
                         Path(kwargs["local_path"]).read_text(encoding="utf-8")
                     )
-                return SimpleNamespace(uri=f"store://test/{kwargs['key']}")
+                return SimpleNamespace(uri=f"store://test/{item}")
 
             def log_model(self, **kwargs: object) -> SimpleNamespace:
                 self.models.append(kwargs)
@@ -237,6 +237,14 @@ class PipelineComponentTests(unittest.TestCase):
             '{"n_estimators": 10}',
         )
         self.assertEqual(len(context.artifacts), 3)
+        self.assertEqual(
+            [artifact["item"] for artifact in context.artifacts],
+            [
+                "random_forest_bundle",
+                "random_forest_metadata",
+                "comparison",
+            ],
+        )
         self.assertEqual(context.models[0]["key"], "selected_model")
         self.assertEqual(
             result["selected_model_uri"],
