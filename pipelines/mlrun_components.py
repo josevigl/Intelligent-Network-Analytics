@@ -14,11 +14,22 @@ from src.preprocessing.data import TASK_NAMES
 from src.preprocessing.pipeline import prepare_task_data_component
 
 
+def _decode_json_value(value: Any, name: str) -> Any:
+    if isinstance(value, (dict, list)):
+        return value
+    if not isinstance(value, (str, bytes, bytearray)):
+        raise TypeError(f"{name} must be a JSON string, object, or array.")
+    try:
+        return json.loads(value)
+    except (json.JSONDecodeError, UnicodeDecodeError) as error:
+        raise ValueError(f"{name} must contain valid JSON.") from error
+
+
 def load_telecomts_component(
     context: Any,
     dataset_name: str = "AliMaatouk/TelecomTS",
     split: str = "train",
-    selected_kpis_json: str = "[]",
+    selected_kpis_json: Any = "[]",
 ) -> None:
     """Load and register only the fields needed by the selected task branches."""
     if split != "train":
@@ -27,7 +38,7 @@ def load_telecomts_component(
             "validation and test are created from it locally."
         )
 
-    selected_kpis = json.loads(selected_kpis_json)
+    selected_kpis = _decode_json_value(selected_kpis_json, "selected_kpis_json")
     if (
         not isinstance(selected_kpis, list)
         or not selected_kpis
@@ -149,8 +160,8 @@ def train_model_comparison_component(
     context: Any,
     dataset,
     task_name: str,
-    project_config_json: str,
-    model_config_json: str,
+    project_config_json: Any,
+    model_config_json: Any,
     evaluate_test: bool = True,
 ) -> dict[str, Any]:
     """Compare estimators and register metrics, parameters, and model bundles.
@@ -162,8 +173,8 @@ def train_model_comparison_component(
         raise ValueError(f"Unknown task name: {task_name!r}.")
 
     frame = _resolve_frame(dataset)
-    project_config = json.loads(project_config_json)
-    model_config = json.loads(model_config_json)
+    project_config = _decode_json_value(project_config_json, "project_config_json")
+    model_config = _decode_json_value(model_config_json, "model_config_json")
     if not isinstance(project_config, dict) or not isinstance(model_config, dict):
         raise ValueError("Serialized model and project configs must be JSON objects.")
 

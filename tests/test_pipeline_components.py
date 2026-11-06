@@ -29,6 +29,7 @@ from src.models.experiments import run_task_model_comparison
 from pipelines.train_models import run_model_comparison_pipeline
 from src.models.estimators import SafeBinaryLogisticRegression
 from pipelines.mlrun_components import (
+    _decode_json_value,
     _resolve_frame,
     load_telecomts_component,
     train_model_comparison_component,
@@ -100,7 +101,7 @@ class PipelineComponentTests(unittest.TestCase):
             load_telecomts_component(
                 context,
                 split="train",
-                selected_kpis_json='["RSRP"]',
+                selected_kpis_json=["RSRP"],
             )
             with self.assertRaisesRegex(ValueError, "only accepts"):
                 load_telecomts_component(context, split="test")
@@ -117,6 +118,16 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(context.results, {"rows": 2, "columns": 4})
         self.assertEqual(context.labels["source_split"], "train")
         self.assertEqual(context.labels["selected_kpi_count"], "1")
+
+    def test_mlrun_json_values_accept_serialized_and_decoded_values(self) -> None:
+        self.assertEqual(_decode_json_value('["RSRP"]', "kpis"), ["RSRP"])
+        self.assertEqual(_decode_json_value(["RSRP"], "kpis"), ["RSRP"])
+        self.assertEqual(_decode_json_value('{"seed": 7}', "config"), {"seed": 7})
+        self.assertEqual(_decode_json_value({"seed": 7}, "config"), {"seed": 7})
+        with self.assertRaisesRegex(TypeError, "JSON string, object, or array"):
+            _decode_json_value(7, "config")
+        with self.assertRaisesRegex(ValueError, "valid JSON"):
+            _decode_json_value("{", "config")
 
     def test_mlrun_training_logs_metrics_candidate_artifacts_and_selected_model(
         self,
