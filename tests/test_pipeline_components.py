@@ -1,5 +1,6 @@
 """Focused tests for train-only preprocessing and artifact-based inference."""
 
+import ast
 import json
 import tempfile
 import unittest
@@ -40,6 +41,28 @@ from pipelines.mlrun_train import (
 
 
 class PipelineComponentTests(unittest.TestCase):
+    def test_mlrun_workflow_uses_kfp_v1_parallel_for_argument(self) -> None:
+        workflow_path = (
+            Path(__file__).resolve().parents[1]
+            / "pipelines"
+            / "mlrun_workflow.py"
+        )
+        module = ast.parse(workflow_path.read_text(encoding="utf-8"))
+        parallel_for_calls = [
+            node
+            for node in ast.walk(module)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "ParallelFor"
+        ]
+
+        self.assertEqual(len(parallel_for_calls), 1)
+        call = parallel_for_calls[0]
+        self.assertEqual(len(call.args), 1)
+        self.assertIsInstance(call.args[0], ast.Name)
+        self.assertEqual(call.args[0].id, "task_names")
+        self.assertEqual(call.keywords, [])
+
     def test_mlrun_loader_registers_only_source_train_split(self) -> None:
         frame = pd.DataFrame(
             {

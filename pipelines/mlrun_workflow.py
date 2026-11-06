@@ -33,7 +33,7 @@ def pipeline(
         outputs=["train_dataset"],
     )
 
-    with dsl.ParallelFor(items=task_names) as task_name:
+    with dsl.ParallelFor(task_names) as task_name:
         mlrun.run_function(
             "ina-model-comparison",
             handler="train_model_comparison_component",
