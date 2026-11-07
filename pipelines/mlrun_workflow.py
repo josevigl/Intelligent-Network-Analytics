@@ -1,48 +1,63 @@
-"""MLRun DAG for dataset registration and parallel task model comparisons."""
-
-from typing import List
+"""MLRun DAGs for model inference and held-out evaluation."""
 
 import mlrun
 from kfp import dsl
 
 
 @dsl.pipeline(
-    name="ina-model-training",
-    description=(
-        "Register TelecomTS train data, then compare and register one model "
-        "for each selected analytics objective."
-    ),
+    name="ina-batch-inference",
+    description="Run a registered task model over an input batch and log predictions.",
 )
-def pipeline(
+def inference_pipeline(
     dataset_name: str,
     split: str,
-    selected_kpis_json: str,
-    task_names: List[str],
-    project_config_json: str,
-    model_config_json: str,
-    evaluate_test: bool = True,
+    model_uri: str,
 ) -> None:
     dataset_run = mlrun.run_function(
-        "ina-telecomts-loader",
-        handler="load_telecomts_component",
-        params={
-            "dataset_name": dataset_name,
-            "split": split,
-            "selected_kpis_json": selected_kpis_json,
-        },
-        outputs=["train_dataset"],
+        "ina-telecomts-inference-loader",
+        handler="load_inference_dataset_component",
+        params={"dataset_name": dataset_name, "split": split},
+        outputs=["inference_dataset"],
+    )
+    mlrun.run_function(
+        "ina-batch-inference",
+        handler="batch_inference_component",
+        inputs={"dataset": dataset_run.outputs["inference_dataset"]},
+        params={"model_uri": model_uri},
+        outputs=["predictions"],
     )
 
-    with dsl.ParallelFor(task_names) as task_name:
-        mlrun.run_function(
-            "ina-model-comparison",
-            handler="train_model_comparison_component",
-            inputs={"dataset": dataset_run.outputs["train_dataset"]},
-            params={
-                "task_name": task_name,
-                "project_config_json": project_config_json,
-                "model_config_json": model_config_json,
-                "evaluate_test": evaluate_test,
-            },
-            outputs=["comparison", "selected_model"],
-        )
+
+@dsl.pipeline(
+    name="ina-model-evaluation",
+    description=(
+        "Evaluate a registered model on its data-verified held-out partition "
+        "without retraining."
+    ),
+)
+def evaluation_pipeline(
+    dataset_name: str,
+    split: str,
+    model_uri: str,
+    holdout_manifest_uri: str,
+    project_config_json: str,
+) -> None:
+    dataset_run = mlrun.run_function(
+        "ina-telecomts-inference-loader",
+        handler="load_inference_dataset_component",
+        params={"dataset_name": dataset_name, "split": split},
+        outputs=["inference_dataset"],
+    )
+    mlrun.run_function(
+        "ina-model-evaluation",
+        handler="evaluate_registered_model_component",
+        inputs={"dataset": dataset_run.outputs["inference_dataset"]},
+        params={
+            "model_uri": model_uri,
+            "holdout_manifest_uri": holdout_manifest_uri,
+            "dataset_name": dataset_name,
+            "source_split": split,
+            "project_config_json": project_config_json,
+        },
+        outputs=["evaluation"],
+    )

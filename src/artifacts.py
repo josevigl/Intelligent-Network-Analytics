@@ -1,6 +1,7 @@
 """Versioned model bundles that keep each fitted preprocessor with its model."""
 
 from dataclasses import dataclass, fields
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -132,7 +133,17 @@ def load_task_artifact(artifact_path: str | Path) -> TaskModelArtifact:
         path = path / "model_bundle.joblib"
     if not path.is_file():
         raise FileNotFoundError(f"Model artifact not found: {path}")
-    artifact = joblib.load(path)
+    return _validate_task_artifact(joblib.load(path))
+
+
+def load_task_artifact_bytes(payload: bytes) -> TaskModelArtifact:
+    """Load and validate a trusted model bundle retrieved from an artifact store."""
+    if not isinstance(payload, bytes):
+        raise TypeError("Model artifact payload must be bytes.")
+    return _validate_task_artifact(joblib.load(BytesIO(payload)))
+
+
+def _validate_task_artifact(artifact: Any) -> TaskModelArtifact:
     if not isinstance(artifact, TaskModelArtifact):
         raise TypeError(f"Unsupported model artifact type: {type(artifact).__name__}")
     if artifact.schema_version != ARTIFACT_SCHEMA_VERSION:

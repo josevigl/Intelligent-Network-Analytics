@@ -1,4 +1,4 @@
-"""MLRun handlers for TelecomTS model training and experiment tracking."""
+"""MLRun registry, inference, and evaluation handlers."""
 
 import json
 import math
@@ -6,12 +6,18 @@ from pathlib import Path
 import tempfile
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from pipelines.train import load_training_frame
-from src.models.experiments import run_task_model_comparison
-from src.preprocessing.data import TASK_NAMES
-from src.preprocessing.pipeline import prepare_task_data_component
+from src.artifacts import (
+    TaskModelArtifact,
+    load_task_artifact,
+    load_task_artifact_bytes,
+)
+from src.evaluation.holdout import config_fingerprint, validate_holdout_manifest
+from src.evaluation.metrics import summarize_task_metrics
+from src.inference import predict_task_component
 
 
 def _decode_json_value(value: Any, name: str) -> Any:
@@ -25,57 +31,17 @@ def _decode_json_value(value: Any, name: str) -> Any:
         raise ValueError(f"{name} must contain valid JSON.") from error
 
 
-def load_telecomts_component(
+def load_inference_dataset_component(
     context: Any,
     dataset_name: str = "AliMaatouk/TelecomTS",
     split: str = "train",
-    selected_kpis_json: Any = "[]",
 ) -> None:
-    """Load and register only the fields needed by the selected task branches."""
-    if split != "train":
-        raise ValueError(
-            "MLRun model training only accepts the source 'train' split; "
-            "validation and test are created from it locally."
-        )
-
-    selected_kpis = _decode_json_value(selected_kpis_json, "selected_kpis_json")
-    if (
-        not isinstance(selected_kpis, list)
-        or not selected_kpis
-        or not all(isinstance(kpi, str) for kpi in selected_kpis)
-    ):
-        raise ValueError("selected_kpis_json must be a non-empty JSON list of strings.")
-
+    """Load a KPI batch and register it for inference or evaluation."""
     frame = load_training_frame(dataset_name, split)
-    required_columns = {"KPIs", "anomalies"}
-    missing_columns = required_columns - set(frame.columns)
-    if missing_columns:
-        raise ValueError(
-            "The source training split is missing required columns: "
-            f"{sorted(missing_columns)}"
-        )
-
-    kept_columns = [
-        column
-        for column in ("start_time", "end_time", "KPIs", "anomalies")
-        if column in frame.columns
-    ]
-    frame = frame.loc[:, kept_columns].copy()
-    selected_kpi_set = set(selected_kpis)
-    frame["KPIs"] = frame["KPIs"].map(
-        lambda values: (
-            {
-                key: value
-                for key, value in values.items()
-                if key in selected_kpi_set
-            }
-            if isinstance(values, dict)
-            else values
-        )
-    )
-
+    if "KPIs" not in frame.columns:
+        raise ValueError("The input dataset must contain a 'KPIs' column.")
     context.log_dataset(
-        key="train_dataset",
+        key="inference_dataset",
         df=frame,
         format="parquet",
         stats=False,
@@ -84,7 +50,6 @@ def load_telecomts_component(
     context.log_result("columns", int(frame.shape[1]))
     context.set_label("dataset", dataset_name.replace("/", "-"))
     context.set_label("source_split", split)
-    context.set_label("selected_kpi_count", str(len(selected_kpis)))
 
 
 def _resolve_frame(dataset: Any) -> pd.DataFrame:
@@ -102,51 +67,36 @@ def _resolve_frame(dataset: Any) -> pd.DataFrame:
     )
 
 
-def _flatten_metrics(result: dict[str, Any]) -> dict[str, float]:
-    selected = next(
-        (model for model in result["models"] if model["selected"]),
-        None,
-    )
-    if selected is None:
-        raise RuntimeError("The model comparison did not select a candidate.")
+def _resolve_model_artifact(model_uri: Any) -> TaskModelArtifact:
+    if isinstance(model_uri, TaskModelArtifact):
+        return model_uri
+    if isinstance(model_uri, (str, Path)) and Path(model_uri).exists():
+        return load_task_artifact(model_uri)
+    if not isinstance(model_uri, str) or not model_uri:
+        raise TypeError("model_uri must be a non-empty local path or MLRun URI.")
 
-    metric_sets = {
-        "cv": selected["cv_metrics"],
-        "validation": selected["validation_metrics"],
-        "test": selected["test_metrics"] or {},
-    }
-    flattened: dict[str, float] = {}
-    for metric_set, metrics in metric_sets.items():
-        for name, value in metrics.items():
-            numeric_value = float(value)
-            if not math.isfinite(numeric_value):
-                raise ValueError(
-                    f"Cannot log non-finite {metric_set} metric {name!r}."
-                )
-            flattened[f"{metric_set}_{name}"] = numeric_value
-    return flattened
+    import mlrun
+
+    payload = mlrun.get_dataitem(model_uri).get()
+    if isinstance(payload, bytearray):
+        payload = bytes(payload)
+    return load_task_artifact_bytes(payload)
 
 
-def _candidate_metrics(result: dict[str, Any]) -> dict[str, float]:
-    flattened: dict[str, float] = {}
-    for candidate in result["models"]:
-        metric_sets = {
-            "cv": candidate["cv_metrics"],
-            "validation": candidate["validation_metrics"],
-            "test": candidate["test_metrics"] or {},
-        }
-        for metric_set, metrics in metric_sets.items():
-            for name, value in metrics.items():
-                numeric_value = float(value)
-                if not math.isfinite(numeric_value):
-                    raise ValueError(
-                        f"Cannot log non-finite {metric_set} metric {name!r} "
-                        f"for {candidate['model_name']}."
-                    )
-                flattened[
-                    f"{candidate['model_name']}_{metric_set}_{name}"
-                ] = numeric_value
-    return flattened
+def _resolve_json_artifact(artifact_uri: str) -> dict[str, Any]:
+    if not isinstance(artifact_uri, str) or not artifact_uri:
+        raise TypeError("artifact_uri must be a non-empty MLRun URI.")
+    import mlrun
+
+    payload = mlrun.get_dataitem(artifact_uri).get()
+    if isinstance(payload, bytes):
+        payload = payload.decode("utf-8")
+    if not isinstance(payload, str):
+        raise TypeError("The registered JSON artifact did not return text.")
+    value = json.loads(payload)
+    if not isinstance(value, dict):
+        raise ValueError("The registered JSON artifact must contain an object.")
+    return value
 
 
 def _artifact_uri(artifact: Any, key: str) -> str:
@@ -156,129 +106,317 @@ def _artifact_uri(artifact: Any, key: str) -> str:
     return uri
 
 
-def train_model_comparison_component(
+def register_model_component(
     context: Any,
-    dataset,
-    task_name: str,
-    project_config_json: Any,
-    model_config_json: Any,
-    evaluate_test: bool = True,
-) -> dict[str, Any]:
-    """Compare estimators and register metrics, parameters, and model bundles.
+    model_path: str,
+    comparison_path: str,
+    holdout_manifest_json: Any,
+    dataset_name: str,
+    source_split: str,
+    code_revision: str,
+    registration_tag: str,
+) -> dict[str, str]:
+    """Register a locally trained selected model and its provenance in MLRun."""
+    bundle_path = Path(model_path)
+    comparison_file = Path(comparison_path)
+    if not bundle_path.is_file():
+        raise FileNotFoundError(f"Model bundle does not exist: {bundle_path}")
+    if not comparison_file.is_file():
+        raise FileNotFoundError(f"Model comparison does not exist: {comparison_file}")
 
-    The untyped dataset input lets MLRun provide a DataItem, which is converted
-    to a DataFrame by _resolve_frame.
-    """
-    if task_name not in TASK_NAMES:
-        raise ValueError(f"Unknown task name: {task_name!r}.")
-
-    frame = _resolve_frame(dataset)
-    project_config = _decode_json_value(project_config_json, "project_config_json")
-    model_config = _decode_json_value(model_config_json, "model_config_json")
-    if not isinstance(project_config, dict) or not isinstance(model_config, dict):
-        raise ValueError("Serialized model and project configs must be JSON objects.")
-
-    splits = prepare_task_data_component(frame, task_name, project_config)
-    with tempfile.TemporaryDirectory(prefix=f"ina-{task_name}-") as temporary:
-        artifact_directory = Path(temporary) / "models"
-        result = run_task_model_comparison(
-            task_name,
-            splits,
-            project_config,
-            model_config,
-            artifact_directory,
-            evaluate_test=evaluate_test,
-        )
-        selected = next(
-            model for model in result["models"] if model["selected"]
-        )
-        selected_bundle = Path(selected["artifact_path"])
-        if not selected_bundle.is_file():
-            raise FileNotFoundError(
-                f"Selected model bundle was not created: {selected_bundle}"
-            )
-
-        context.set_label("task", task_name)
-        context.set_label("selected_model", selected["model_name"])
-        context.log_result("selected_model", selected["model_name"])
-        context.log_result(
-            "cross_validation_folds", int(result["cross_validation_folds"])
-        )
-        context.log_result(
-            "train_samples", int(result["sample_counts"]["train"])
-        )
-        context.log_result(
-            "validation_samples", int(result["sample_counts"]["validation"])
-        )
-        context.log_result("test_samples", int(result["sample_counts"]["test"]))
-
-        metrics = _flatten_metrics(result)
-        logged_metrics = _candidate_metrics(result)
-        logged_metrics.update(metrics)
-        for name, value in logged_metrics.items():
-            context.log_result(name, value)
-
-        for candidate in result["models"]:
-            context.log_result(
-                f"{candidate['model_name']}_parameters",
-                json.dumps(candidate["parameters"], sort_keys=True),
-            )
-            bundle_path = Path(candidate["artifact_path"])
-            labels = {
-                "task": task_name,
-                "model": candidate["model_name"],
-                "selected": str(candidate["selected"]).lower(),
-            }
-            bundle_artifact = context.log_artifact(
-                f"{candidate['model_name']}_bundle",
-                local_path=str(bundle_path),
-                labels=labels,
-            )
-            candidate["artifact_path"] = _artifact_uri(
-                bundle_artifact,
-                f"{candidate['model_name']}_bundle",
-            )
-            manifest_path = bundle_path.with_name("metadata.json")
-            if not manifest_path.is_file():
-                raise FileNotFoundError(
-                    f"Model metadata was not created: {manifest_path}"
-                )
-            context.log_artifact(
-                f"{candidate['model_name']}_metadata",
-                local_path=str(manifest_path),
-                labels=labels,
-            )
-
-        comparison_path = artifact_directory / task_name / "comparison.json"
-        with comparison_path.open("w", encoding="utf-8") as file:
-            json.dump(result, file, ensure_ascii=False, indent=2)
-            file.write("\n")
-        comparison_artifact = context.log_artifact(
-            "comparison",
-            local_path=str(comparison_path),
-            labels={"task": task_name},
-        )
-        comparison_uri = _artifact_uri(comparison_artifact, "comparison")
-        selected_model_artifact = context.log_model(
-            key="selected_model",
-            model_file=str(selected_bundle),
-            metrics=metrics,
-            parameters=json.loads(json.dumps(selected["parameters"])),
-            labels={
-                "task": task_name,
-                "algorithm": selected["model_name"],
-            },
-        )
-        selected_model_uri = _artifact_uri(
-            selected_model_artifact,
-            "selected_model",
+    artifact = load_task_artifact(bundle_path)
+    if not artifact.selected:
+        raise ValueError("Only the selected model bundle may be registered.")
+    manifest = _decode_json_value(holdout_manifest_json, "holdout_manifest_json")
+    if not isinstance(manifest, dict):
+        raise ValueError("The holdout manifest must be a JSON object.")
+    if manifest.get("task_name") != artifact.task_name:
+        raise ValueError("The holdout manifest belongs to a different task.")
+    if manifest.get("dataset_name") != dataset_name:
+        raise ValueError("The holdout manifest names a different source dataset.")
+    if manifest.get("source_split") != source_split:
+        raise ValueError("The holdout manifest names a different source split.")
+    if manifest.get("code_revision") != code_revision:
+        raise ValueError("The holdout manifest has a different code revision.")
+    artifact_project_config = artifact.config.get("project")
+    if not isinstance(artifact_project_config, dict):
+        raise ValueError("The model bundle has no project configuration provenance.")
+    if manifest.get("project_config_sha256") != config_fingerprint(
+        artifact_project_config
+    ):
+        raise ValueError(
+            "The holdout manifest configuration differs from the trained model."
         )
 
-    return {
-        "task_name": task_name,
-        "selected_model": selected["model_name"],
-        "metrics": metrics,
-        "parameters": selected["parameters"],
-        "comparison_uri": comparison_uri,
-        "selected_model_uri": selected_model_uri,
+    with comparison_file.open("r", encoding="utf-8") as file:
+        comparison = json.load(file)
+    if not isinstance(comparison, dict) or comparison.get("task_name") != artifact.task_name:
+        raise ValueError("The comparison file does not match the model task.")
+    selected_models = [
+        candidate
+        for candidate in comparison.get("models", [])
+        if candidate.get("selected")
+    ]
+    if (
+        len(selected_models) != 1
+        or selected_models[0].get("model_name") != artifact.model_name
+    ):
+        raise ValueError(
+            "The bundle must match the single model selected in comparison.json."
+        )
+
+    model_metrics: dict[str, float] = {}
+    metric_sets = {
+        "cv": artifact.cv_metrics or {},
+        "validation": artifact.validation_metrics,
+        "test": artifact.test_metrics or {},
     }
+    for metric_set, metrics in metric_sets.items():
+        for name, value in metrics.items():
+            numeric_value = float(value)
+            if not math.isfinite(numeric_value):
+                raise ValueError(
+                    f"Model has a non-finite {metric_set} metric {name!r}."
+                )
+            model_metrics[f"{metric_set}_{name}"] = numeric_value
+
+    model_record = context.log_model(
+        key=artifact.task_name,
+        tag=registration_tag,
+        model_file=str(bundle_path),
+        framework="scikit-learn",
+        algorithm=artifact.model_name,
+        metrics=model_metrics,
+        parameters=artifact.model_parameters or {},
+        labels={
+            "task": artifact.task_name,
+            "algorithm": artifact.model_name,
+            "dataset": dataset_name.replace("/", "-"),
+            "code_revision": code_revision[:12],
+        },
+        extra_data={
+            "dataset_name": dataset_name,
+            "source_split": source_split,
+            "dataset_sha256": manifest["dataset_sha256"],
+            "project_config_sha256": manifest["project_config_sha256"],
+            "code_revision": code_revision,
+            "holdout_manifest": manifest,
+        },
+    )
+    model_uri = _artifact_uri(model_record, artifact.task_name)
+    manifest_record = context.log_artifact(
+        f"{artifact.task_name}_holdout_manifest",
+        body=json.dumps(manifest, ensure_ascii=False, sort_keys=True).encode(
+            "utf-8"
+        ),
+        format="json",
+        labels={"task": artifact.task_name},
+    )
+    manifest_uri = _artifact_uri(
+        manifest_record,
+        f"{artifact.task_name}_holdout_manifest",
+    )
+    comparison_record = context.log_artifact(
+        f"{artifact.task_name}_comparison",
+        local_path=str(comparison_file),
+        format="json",
+        labels={"task": artifact.task_name},
+    )
+    comparison_uri = _artifact_uri(
+        comparison_record,
+        f"{artifact.task_name}_comparison",
+    )
+
+    context.set_label("task", artifact.task_name)
+    context.set_label("model", artifact.model_name)
+    context.log_result("model_uri", model_uri)
+    context.log_result("holdout_manifest_uri", manifest_uri)
+    context.log_result("comparison_uri", comparison_uri)
+    context.log_result("dataset_sha256", manifest["dataset_sha256"])
+    context.log_result("code_revision", code_revision)
+    return {
+        "task_name": artifact.task_name,
+        "model_uri": model_uri,
+        "holdout_manifest_uri": manifest_uri,
+        "comparison_uri": comparison_uri,
+    }
+
+
+def _jsonable_prediction(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, tuple):
+        return list(value)
+    return value
+
+
+def batch_inference_component(
+    context: Any,
+    dataset: Any,
+    model_uri: str,
+) -> dict[str, Any]:
+    """Run a registered model over an unlabeled batch and log predictions."""
+    frame = _resolve_frame(dataset)
+    artifact = _resolve_model_artifact(model_uri)
+    result = predict_task_component(frame, artifact)
+    records = [
+        {
+            "position": int(position),
+            "prediction": _jsonable_prediction(prediction),
+        }
+        for position, prediction in zip(result.positions, result.predictions)
+    ]
+    context.set_label("task", artifact.task_name)
+    context.set_label("model", artifact.model_name)
+    context.log_result("prediction_count", len(records))
+    with tempfile.TemporaryDirectory(
+        prefix=f"ina-{artifact.task_name}-predictions-"
+    ) as temporary:
+        predictions_path = Path(temporary) / "predictions.json"
+        with predictions_path.open("w", encoding="utf-8") as file:
+            json.dump(
+                {
+                    "task_name": artifact.task_name,
+                    "model_name": artifact.model_name,
+                    "predictions": records,
+                },
+                file,
+                ensure_ascii=False,
+                indent=2,
+            )
+            file.write("\n")
+        prediction_artifact = context.log_artifact(
+            "predictions",
+            local_path=str(predictions_path),
+            format="json",
+            labels={"task": artifact.task_name, "model": artifact.model_name},
+        )
+    return {
+        "task_name": artifact.task_name,
+        "model_name": artifact.model_name,
+        "prediction_count": len(records),
+        "predictions_uri": _artifact_uri(prediction_artifact, "predictions"),
+    }
+
+
+def evaluate_registered_model_component(
+    context: Any,
+    dataset: Any,
+    model_uri: str,
+    holdout_manifest_uri: str,
+    dataset_name: str,
+    source_split: str,
+    project_config_json: Any,
+) -> dict[str, Any]:
+    """Evaluate a registered model on its data-verified held-out partition."""
+    frame = _resolve_frame(dataset)
+    artifact = _resolve_model_artifact(model_uri)
+    manifest = _resolve_json_artifact(holdout_manifest_uri)
+    project_config = _decode_json_value(project_config_json, "project_config_json")
+    if not isinstance(project_config, dict):
+        raise ValueError("project_config_json must be a JSON object.")
+    if manifest.get("dataset_name") is None:
+        raise ValueError("The holdout manifest has no dataset provenance.")
+    if manifest["dataset_name"] != dataset_name:
+        raise ValueError(
+            "The requested source dataset differs from the registered holdout."
+        )
+    if manifest.get("source_split") != source_split:
+        raise ValueError(
+            "The requested source split differs from the registered holdout."
+        )
+
+    splits = validate_holdout_manifest(
+        frame=frame,
+        manifest=manifest,
+        task_name=artifact.task_name,
+        config=project_config,
+    )
+    test_frame = frame.iloc[splits.positions_test]
+    prediction_result = predict_task_component(test_frame, artifact)
+    if len(prediction_result.predictions) != len(splits.y_test):
+        raise RuntimeError(
+            "The registered model produced a different number of predictions "
+            "than the held-out test targets."
+        )
+
+    y_true = splits.y_test
+    y_pred = prediction_result.predictions
+    if artifact.task_name == "affected_kpis":
+        if artifact.target_encoder is None:
+            raise ValueError("Affected-KPI artifact is missing its label encoder.")
+        known_labels = set(str(value) for value in artifact.target_encoder.classes_)
+        unknown = {
+            str(label)
+            for sample in y_true
+            for label in sample
+            if str(label) not in known_labels
+        }
+        if unknown:
+            raise ValueError(
+                "Test data contains affected-KPI labels absent from the model: "
+                f"{sorted(unknown)}"
+            )
+        y_true = artifact.target_encoder.transform(y_true)
+        y_pred = artifact.target_encoder.transform(y_pred.tolist())
+    elif artifact.task_name == "anomaly_type":
+        if artifact.target_encoder is None:
+            raise ValueError("Anomaly-type artifact is missing its label encoder.")
+        unknown = set(y_true) - set(artifact.target_encoder.classes_)
+        if unknown:
+            raise ValueError(
+                "Test data contains anomaly types absent from the model: "
+                f"{sorted(unknown)}"
+            )
+
+    metrics = summarize_task_metrics(artifact.task_name, y_true, y_pred)
+    if artifact.task_name == "temporal_localization":
+        if not artifact.decision_thresholds:
+            raise ValueError("Temporal-localization artifact has no decision threshold.")
+        metrics["threshold"] = float(artifact.decision_thresholds[0])
+
+    for name, value in metrics.items():
+        numeric_value = float(value)
+        if not math.isfinite(numeric_value):
+            raise ValueError(f"Cannot log non-finite evaluation metric {name!r}.")
+        context.log_result(f"test_{name}", numeric_value)
+
+    evaluation = {
+        "task_name": artifact.task_name,
+        "model_name": artifact.model_name,
+        "model_uri": model_uri,
+        "holdout_manifest_uri": holdout_manifest_uri,
+        "dataset_sha256": manifest["dataset_sha256"],
+        "code_revision": manifest["code_revision"],
+        "sample_count": int(len(y_true)),
+        "group_count": (
+            int(len(np.unique(splits.groups_test)))
+            if splits.groups_test is not None
+            else None
+        ),
+        "grouping_strategy": manifest["grouping_strategy"],
+        "metrics": metrics,
+    }
+    context.set_label("task", artifact.task_name)
+    context.set_label("model", artifact.model_name)
+    context.log_result("test_samples", evaluation["sample_count"])
+    with tempfile.TemporaryDirectory(
+        prefix=f"ina-{artifact.task_name}-evaluation-"
+    ) as temporary:
+        evaluation_path = Path(temporary) / "evaluation.json"
+        with evaluation_path.open("w", encoding="utf-8") as file:
+            json.dump(evaluation, file, ensure_ascii=False, indent=2)
+            file.write("\n")
+        evaluation_artifact = context.log_artifact(
+            "evaluation",
+            local_path=str(evaluation_path),
+            format="json",
+            labels={"task": artifact.task_name, "model": artifact.model_name},
+        )
+    evaluation["evaluation_uri"] = _artifact_uri(
+        evaluation_artifact,
+        "evaluation",
+    )
+    return evaluation

@@ -32,7 +32,10 @@ test = ["pytest>=7.0"]
 ina-train = "pipelines.train:main"
 ina-infer = "pipelines.inference:main"
 ina-train-models = "pipelines.train_models:main"
-ina-mlrun-train = "pipelines.mlrun_train:main"
+ina-mlrun-setup = "pipelines.mlrun_setup:main"
+ina-mlrun-register = "pipelines.mlrun_registry:main"
+ina-mlrun-infer = "pipelines.mlrun_batch:inference_main"
+ina-mlrun-evaluate = "pipelines.mlrun_batch:evaluation_main"
 
 [tool.setuptools.packages.find]
 where = ["."]

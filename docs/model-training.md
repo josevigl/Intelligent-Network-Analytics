@@ -38,7 +38,7 @@ preprocessor, parameters, and validation-calibrated threshold saved together.
   comparison, threshold selection, final test evaluation, and artifact saving.
 - `pipelines/train_models.py`: end-to-end CLI and comparison CSV/JSON writer.
 - `pipelines/mlrun_components.py`, `pipelines/mlrun_workflow.py`, and
-  `pipelines/mlrun_train.py`: MLRun handlers, parallel workflow, and launcher.
+  `pipelines/mlrun_registry.py`: MLRun registration, inference, and evaluation.
 - `src/artifacts.py` and `src/inference.py`: model bundle persistence and
   inference without refitting.
 - `notebooks/ModelComparison.ipynb`: per-objective CV/validation charts and the
@@ -107,61 +107,65 @@ Open `notebooks/ModelComparison.ipynb` after training to compare CV and
 validation scores. Test scores are populated only for the selected model of
 each objective.
 
-## MLRun training workflow
+## MLRun registry, inference, and evaluation
 
-`ina-mlrun-train` registers and runs a two-stage MLRun workflow:
+Training and model selection remain local with `ina-train-models`. MLRun is
+used after training for model registration/versioning, run provenance, batch
+inference, and evaluation on the exact held-out partition used by training.
+Online deployment and monitoring are separate follow-up stages.
 
-1. Load and register the source `train` split once as a Parquet dataset.
-2. Run one parallel branch per selected objective. Each branch performs the
-   existing group-aware CV and validation model selection, then records its
-   metrics, comparison JSON, candidate bundles, and selected model in MLRun.
-
-The selected model is registered with its preprocessing pipeline, feature
-order, configuration, and target encoder in the same joblib bundle. MLRun also
-stores its selected parameters and CV/validation/test metrics in the model
-record. Only the selected candidate is evaluated against test, and
-`--skip-test` is available for exploratory runs.
-
-MLRun is optional for local model training. Install the project and MLRun
-dependencies in a Linux or WSL2 shell configured to access an MLRun API/DB,
-workflow engine, image builder, and image registry:
+Install the optional MLRun dependencies in a Linux or WSL2 environment that
+can access the MLRun API and artifact store:
 
 ```text
 python -m pip install -e ".[mlrun,data,models]"
 ```
 
-MLRun must be able to access the repository source and build or pull the
-runtime image. Commit and push the code first, then provide a repository or
-archive URL accessible to the MLRun environment. Configure private-repository
-credentials in MLRun, never in the URL. The workflow writes the generated
-`project.yaml` into the repository directory.
-Use the same MLRun version as the target platform; the optional dependency
-installs its KFP 1.8 workflow extra.
-
-Run all four branches:
+First train locally. The default runs all four objectives; individual or
+multiple objectives can be selected as above. Then configure the two
+post-training workflows once. The source must point at a pushed revision
+containing the MLOps code; do not put credentials in the URL:
 
 ```text
-ina-mlrun-train --source "git://github.com/<owner>/<repository>.git"
+ina-train-models
+ina-mlrun-setup --source "git://github.com/<owner>/<repository>.git#<branch>"
 ```
 
-Run only anomaly-type classification and avoid using the holdout test set
-during an exploratory run:
+Register each selected local model bundle and its `comparison.json` metadata
+with MLRun. By default, all four objectives are registered from
+`results/models`; repeat `--task` to limit registration:
 
 ```text
-ina-mlrun-train --source "git://github.com/<owner>/<repository>.git" --task anomaly_type --skip-test
+ina-mlrun-register --source "git://github.com/<owner>/<repository>.git#<branch>"
+ina-mlrun-register --source "git://github.com/<owner>/<repository>.git#<branch>" --task anomaly_type
 ```
 
-Select multiple branches by repeating `--task`. The workflow defaults to
-`AliMaatouk/TelecomTS`, source split `train`, and the repository's `config.yaml`
-and `model_config.yaml`. Override the dataset, project name, custom config
-files, or workflow image with `--dataset`, `--project`, `--config`,
-`--models-config`, `--base-image`, and `--image`. The `--image` value must be
-available to the MLRun runtime; omit it to use MLRun's generated project image.
-Use `--no-watch` to submit the workflow and return without waiting.
+Registration only accepts the candidate marked selected by the local
+comparison results. The model artifact includes its fitted preprocessing and
+target transformations. MLRun also stores the comparison, CV/validation
+metrics, source dataset and split, code revision, and a holdout manifest. The
+manifest identifies the exact test positions and fingerprints the dataset and
+configuration; evaluation fails if these no longer match.
 
-Monitor each run in the MLRun UI. Each task execution includes the selected
-model and its parameters, CV/validation/test metrics, the complete candidate
-comparison JSON, and the model bundles. The loader execution records the
-dataset artifact and its row/column counts. To deploy a registered model or add
-serving and monitoring components, configure the MLRun serving runtime and
-downstream infrastructure separately.
+In the MLRun UI, copy the registered model URI and the corresponding
+`<task>_holdout_manifest` artifact URI. Use the model URI to run batch
+inference on the available source `train` split:
+
+```text
+ina-mlrun-infer --model-uri "<registered-model-uri>"
+```
+
+Evaluate the registered model on its recorded held-out test partition:
+
+```text
+ina-mlrun-evaluate \
+  --model-uri "<registered-model-uri>" \
+  --holdout-manifest-uri "<registered-holdout-manifest-uri>"
+```
+
+The evaluation command defaults to the same `AliMaatouk/TelecomTS` train split
+and `config.yaml`; provide matching `--dataset`, `--split`, or `--config` values
+if those differed at registration. Do not retrain between registration and
+evaluation or change the data/configuration: the manifest check intentionally
+rejects mismatches. Configure a serving runtime and monitoring stack
+separately when the registry, inference, and evaluation flow has been verified.
