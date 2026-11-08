@@ -419,6 +419,47 @@ class PipelineComponentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "query parameters"):
             validate_source("https://example.com/project.zip?token=secret")
 
+    def test_selected_bundle_resolves_windows_path_from_linux(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact_root = Path(temporary) / "results" / "models"
+            model_path = (
+                artifact_root
+                / "binary_detection"
+                / "random_forest"
+                / "model_bundle.joblib"
+            )
+            model_path.parent.mkdir(parents=True)
+            model_path.write_bytes(b"model")
+            comparison_path = artifact_root / "binary_detection" / "comparison.json"
+            comparison_path.parent.mkdir(parents=True, exist_ok=True)
+            comparison_path.write_text(
+                json.dumps(
+                    {
+                        "task_name": "binary_detection",
+                        "models": [
+                            {
+                                "model_name": "random_forest",
+                                "selected": True,
+                                "artifact_path": (
+                                    "results\\\\models\\\\binary_detection\\\\"
+                                    "random_forest\\\\model_bundle.joblib"
+                                ),
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            resolved_path, resolved_comparison, model_name = _selected_bundle(
+                artifact_root,
+                "binary_detection",
+            )
+
+        self.assertEqual(resolved_path, model_path.resolve())
+        self.assertEqual(resolved_comparison, comparison_path)
+        self.assertEqual(model_name, "random_forest")
+
     def test_mlrun_registry_runs_registration_for_selected_local_bundle(self) -> None:
         project = unittest.mock.Mock()
         project.run_function.return_value = SimpleNamespace(

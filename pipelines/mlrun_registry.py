@@ -55,11 +55,23 @@ def _selected_bundle(
     artifact_path = candidate.get("artifact_path")
     if not isinstance(model_name, str) or not isinstance(artifact_path, str):
         raise ValueError(f"Selected model record is incomplete in {comparison_path}.")
-    model_path = Path(artifact_path)
+
+    model_path = (
+        artifact_directory / task_name / model_name / "model_bundle.joblib"
+    )
+    if model_path.is_file():
+        return model_path.resolve(), comparison_path, model_name
+
+    normalized_artifact_path = artifact_path.replace("\\", "/")
+    model_path = Path(normalized_artifact_path)
     if not model_path.is_absolute():
         model_path = (Path.cwd() / model_path).resolve()
     if not model_path.is_file():
-        raise FileNotFoundError(f"Selected model bundle not found: {model_path}")
+        raise FileNotFoundError(
+            "Selected model bundle not found. Checked the standard bundle "
+            f"path {artifact_directory / task_name / model_name / 'model_bundle.joblib'} "
+            f"and comparison path {model_path}."
+        )
     return model_path, comparison_path, model_name
 
 
