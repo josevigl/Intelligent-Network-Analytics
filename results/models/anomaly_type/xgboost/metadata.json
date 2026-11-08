@@ -78,7 +78,88 @@
     "numeric__DL_BLER__slope",
     "numeric__UL_NumberOfPackets__slope",
     "numeric__Estimated_UL_Buffer__slope",
-    "numeric__PRB_Utilization_UL__slope"
+    "numeric__PRB_Utilization_UL__slope",
+    "numeric__RSRP__q10",
+    "numeric__UL_SNR__q10",
+    "numeric__DL_MCS__q10",
+    "numeric__UL_NPRB__q10",
+    "numeric__PRBs_DL_Current__q10",
+    "numeric__DL_BLER__q10",
+    "numeric__UL_NumberOfPackets__q10",
+    "numeric__Estimated_UL_Buffer__q10",
+    "numeric__PRB_Utilization_UL__q10",
+    "numeric__RSRP__q25",
+    "numeric__UL_SNR__q25",
+    "numeric__DL_MCS__q25",
+    "numeric__UL_NPRB__q25",
+    "numeric__PRBs_DL_Current__q25",
+    "numeric__DL_BLER__q25",
+    "numeric__UL_NumberOfPackets__q25",
+    "numeric__Estimated_UL_Buffer__q25",
+    "numeric__PRB_Utilization_UL__q25",
+    "numeric__RSRP__median",
+    "numeric__UL_SNR__median",
+    "numeric__DL_MCS__median",
+    "numeric__UL_NPRB__median",
+    "numeric__PRBs_DL_Current__median",
+    "numeric__DL_BLER__median",
+    "numeric__UL_NumberOfPackets__median",
+    "numeric__Estimated_UL_Buffer__median",
+    "numeric__PRB_Utilization_UL__median",
+    "numeric__RSRP__q75",
+    "numeric__UL_SNR__q75",
+    "numeric__DL_MCS__q75",
+    "numeric__UL_NPRB__q75",
+    "numeric__PRBs_DL_Current__q75",
+    "numeric__DL_BLER__q75",
+    "numeric__UL_NumberOfPackets__q75",
+    "numeric__Estimated_UL_Buffer__q75",
+    "numeric__PRB_Utilization_UL__q75",
+    "numeric__RSRP__q90",
+    "numeric__UL_SNR__q90",
+    "numeric__DL_MCS__q90",
+    "numeric__UL_NPRB__q90",
+    "numeric__PRBs_DL_Current__q90",
+    "numeric__DL_BLER__q90",
+    "numeric__UL_NumberOfPackets__q90",
+    "numeric__Estimated_UL_Buffer__q90",
+    "numeric__PRB_Utilization_UL__q90",
+    "numeric__RSRP__first",
+    "numeric__UL_SNR__first",
+    "numeric__DL_MCS__first",
+    "numeric__UL_NPRB__first",
+    "numeric__PRBs_DL_Current__first",
+    "numeric__DL_BLER__first",
+    "numeric__UL_NumberOfPackets__first",
+    "numeric__Estimated_UL_Buffer__first",
+    "numeric__PRB_Utilization_UL__first",
+    "numeric__RSRP__last",
+    "numeric__UL_SNR__last",
+    "numeric__DL_MCS__last",
+    "numeric__UL_NPRB__last",
+    "numeric__PRBs_DL_Current__last",
+    "numeric__DL_BLER__last",
+    "numeric__UL_NumberOfPackets__last",
+    "numeric__Estimated_UL_Buffer__last",
+    "numeric__PRB_Utilization_UL__last",
+    "numeric__RSRP__delta",
+    "numeric__UL_SNR__delta",
+    "numeric__DL_MCS__delta",
+    "numeric__UL_NPRB__delta",
+    "numeric__PRBs_DL_Current__delta",
+    "numeric__DL_BLER__delta",
+    "numeric__UL_NumberOfPackets__delta",
+    "numeric__Estimated_UL_Buffer__delta",
+    "numeric__PRB_Utilization_UL__delta",
+    "numeric__RSRP__iqr",
+    "numeric__UL_SNR__iqr",
+    "numeric__DL_MCS__iqr",
+    "numeric__UL_NPRB__iqr",
+    "numeric__PRBs_DL_Current__iqr",
+    "numeric__DL_BLER__iqr",
+    "numeric__UL_NumberOfPackets__iqr",
+    "numeric__Estimated_UL_Buffer__iqr",
+    "numeric__PRB_Utilization_UL__iqr"
   ],
   "input_mode": "window_statistics",
   "target_classes": [
@@ -204,7 +285,31 @@
       "selection": {
         "primary_metric": "f1_macro",
         "threshold_objective": "f1",
-        "threshold_fallback": 0.5
+        "threshold_fallback": 0.5,
+        "model_source_by_task": {
+          "anomaly_type": "cross_validation"
+        }
+      },
+      "features": {
+        "anomaly_type": {
+          "window_statistics": [
+            "mean",
+            "std",
+            "min",
+            "max",
+            "range",
+            "slope",
+            "q10",
+            "q25",
+            "median",
+            "q75",
+            "q90",
+            "first",
+            "last",
+            "delta",
+            "iqr"
+          ]
+        }
       },
       "models": {
         "binary_detection": {
@@ -257,9 +362,11 @@
             "estimator": "logistic_regression",
             "parameter_grid": {
               "C": [
+                0.01,
                 0.1,
                 1.0,
-                10.0
+                10.0,
+                100.0
               ],
               "class_weight": [
                 "balanced"
@@ -273,11 +380,17 @@
                 100
               ],
               "max_depth": [
-                12,
+                8,
                 null
               ],
               "min_samples_leaf": [
-                2
+                1,
+                4,
+                8
+              ],
+              "class_weight": [
+                "balanced",
+                "balanced_subsample"
               ]
             }
           },
@@ -285,11 +398,16 @@
             "estimator": "svm",
             "parameter_grid": {
               "C": [
-                0.5,
-                2.0
+                0.1,
+                1.0,
+                10.0
               ],
               "kernel": [
                 "rbf"
+              ],
+              "gamma": [
+                "scale",
+                0.1
               ],
               "class_weight": [
                 "balanced"
@@ -303,11 +421,24 @@
                 150
               ],
               "max_depth": [
-                4,
-                7
+                2,
+                4
               ],
               "learning_rate": [
-                0.05
+                0.03,
+                0.1
+              ],
+              "min_child_weight": [
+                1,
+                5
+              ],
+              "reg_lambda": [
+                1.0
+              ],
+              "sample_weight": [
+                null,
+                "sqrt_balanced",
+                "balanced"
               ]
             }
           }
@@ -404,12 +535,12 @@
     }
   },
   "validation_metrics": {
-    "accuracy": 0.6711409395973155,
-    "precision_macro": 0.5807168458781361,
-    "recall_macro": 0.47791666666666666,
-    "f1_micro": 0.6711409395973155,
-    "f1_macro": 0.45999641205038505,
-    "f1_weighted": 0.6750133279600091
+    "accuracy": 0.6510067114093959,
+    "precision_macro": 0.4871230158730159,
+    "recall_macro": 0.46125000000000005,
+    "f1_micro": 0.6510067114093959,
+    "f1_macro": 0.43708948323041275,
+    "f1_weighted": 0.6462973835276945
   },
   "library_versions": {
     "python": "3.11.1",
@@ -417,32 +548,52 @@
   },
   "model_name": "xgboost",
   "model_parameters": {
-    "learning_rate": 0.05,
-    "max_depth": 7,
-    "n_estimators": 150
+    "learning_rate": 0.1,
+    "max_depth": 2,
+    "min_child_weight": 5,
+    "n_estimators": 150,
+    "reg_lambda": 1.0,
+    "sample_weight": "sqrt_balanced"
   },
   "decision_thresholds": [],
   "cv_metrics": {
-    "accuracy_mean": 0.5494664764779708,
-    "f1_macro_mean": 0.46853384263563447,
-    "f1_micro_mean": 0.5494664764779708,
-    "f1_weighted_mean": 0.532845810628299,
-    "precision_macro_mean": 0.5167986635606466,
-    "recall_macro_mean": 0.4859948553496661,
-    "accuracy_std": 0.0627339577559946,
-    "f1_macro_std": 0.020100065058233658,
-    "f1_micro_std": 0.0627339577559946,
-    "f1_weighted_std": 0.06606221297617368,
-    "precision_macro_std": 0.04006473737943984,
-    "recall_macro_std": 0.010797355310341213
+    "accuracy_mean": 0.6367807798842282,
+    "f1_macro_mean": 0.5462761895540132,
+    "f1_micro_mean": 0.6367807798842282,
+    "f1_weighted_mean": 0.6187376586531242,
+    "precision_macro_mean": 0.5777980798364465,
+    "recall_macro_mean": 0.5642776403470653,
+    "accuracy_std": 0.04261675327631684,
+    "f1_macro_std": 0.019483209964326478,
+    "f1_micro_std": 0.04261675327631684,
+    "f1_weighted_std": 0.054043816430175175,
+    "precision_macro_std": 0.003816031625387042,
+    "recall_macro_std": 0.024272933488665813
   },
   "test_metrics": {
-    "accuracy": 0.8016528925619835,
-    "precision_macro": 0.5918673255465708,
-    "recall_macro": 0.6081783897278527,
-    "f1_micro": 0.8016528925619835,
-    "f1_macro": 0.5945072858747189,
-    "f1_weighted": 0.7896366345946537
+    "accuracy": 0.8057851239669421,
+    "precision_macro": 0.6062087912087912,
+    "recall_macro": 0.6171545802040432,
+    "f1_micro": 0.8057851239669421,
+    "f1_macro": 0.6007651224352694,
+    "f1_weighted": 0.7929152461383342
   },
-  "selected": true
+  "selected": true,
+  "summary_statistics": [
+    "mean",
+    "std",
+    "min",
+    "max",
+    "range",
+    "slope",
+    "q10",
+    "q25",
+    "median",
+    "q75",
+    "q90",
+    "first",
+    "last",
+    "delta",
+    "iqr"
+  ]
 }
