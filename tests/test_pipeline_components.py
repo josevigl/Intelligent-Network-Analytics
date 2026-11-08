@@ -41,7 +41,11 @@ from pipelines.mlrun_components import (
     evaluate_registered_model_component,
     register_model_component,
 )
-from pipelines.mlrun_project import configure_mlrun_project, validate_source
+from pipelines.mlrun_project import (
+    RUNTIME_REQUIREMENTS,
+    configure_mlrun_project,
+    validate_source,
+)
 from pipelines.mlrun_registry import _selected_bundle, register_local_models
 from pipelines.mlrun_batch import register_and_run_batch_pipeline
 
@@ -71,6 +75,7 @@ class PipelineComponentTests(unittest.TestCase):
         )
 
     def test_mlrun_setup_registers_only_post_training_functions_and_workflows(self) -> None:
+        self.assertIn("boto3>=1.26", RUNTIME_REQUIREMENTS)
         project = unittest.mock.Mock()
         project.name = "ina-test"
         mlrun_module = SimpleNamespace(

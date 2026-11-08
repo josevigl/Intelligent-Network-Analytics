@@ -6,6 +6,7 @@ from urllib.parse import parse_qsl, urlparse
 
 
 RUNTIME_REQUIREMENTS = [
+    "boto3>=1.26",
     "datasets>=2.14",
     "iterative-stratification>=0.1.9",
     "joblib>=1.3",

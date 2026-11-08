@@ -115,7 +115,9 @@ inference, and evaluation on the exact held-out partition used by training.
 Online deployment and monitoring are separate follow-up stages.
 
 Install the optional MLRun dependencies in a Linux or WSL2 environment that
-can access the MLRun API and artifact store:
+can access the MLRun API and artifact store. The MLRun extra includes S3
+support because MLRun stores registered model artifacts in the configured
+object store:
 
 ```text
 python -m pip install -e ".[mlrun,data,models]"
