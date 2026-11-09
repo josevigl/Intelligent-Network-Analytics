@@ -17,6 +17,9 @@ RUNTIME_REQUIREMENTS = [
     "xgboost>=2.0",
 ]
 
+FUNCTION_MEMORY_REQUEST = "1Gi"
+FUNCTION_MEMORY_LIMIT = "4Gi"
+
 
 def validate_source(source: str) -> None:
     parsed = urlparse(source)
@@ -88,7 +91,10 @@ def configure_mlrun_project(
         }
         if image is not None:
             options["image"] = image
-        project.set_function(**options).save(tag="latest")
+        function = project.set_function(**options)
+        function.with_requests(mem=FUNCTION_MEMORY_REQUEST)
+        function.with_limits(mem=FUNCTION_MEMORY_LIMIT)
+        function.save(tag="latest")
 
     workflow_path = str(Path("pipelines") / "mlrun_workflow.py")
     for name, handler in (

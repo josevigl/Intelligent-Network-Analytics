@@ -41,6 +41,8 @@ from pipelines.mlrun_components import (
     register_model_component,
 )
 from pipelines.mlrun_project import (
+    FUNCTION_MEMORY_LIMIT,
+    FUNCTION_MEMORY_REQUEST,
     RUNTIME_REQUIREMENTS,
     configure_mlrun_project,
     validate_source,
@@ -129,6 +131,18 @@ class PipelineComponentTests(unittest.TestCase):
             ["inference_pipeline", "evaluation_pipeline"],
         )
         self.assertEqual(project.set_function.call_count, 2)
+        project.set_function.return_value.with_requests.assert_called_with(
+            mem=FUNCTION_MEMORY_REQUEST,
+        )
+        project.set_function.return_value.with_limits.assert_called_with(
+            mem=FUNCTION_MEMORY_LIMIT,
+        )
+        self.assertEqual(FUNCTION_MEMORY_REQUEST, "1Gi")
+        self.assertEqual(FUNCTION_MEMORY_LIMIT, "4Gi")
+        self.assertEqual(
+            project.set_function.return_value.save.call_count,
+            2,
+        )
         project.build_image.assert_called_once_with()
 
     def test_holdout_manifest_rejects_dataset_config_and_split_changes(self) -> None:

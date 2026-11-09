@@ -126,12 +126,18 @@ python -m pip install -e ".[mlrun,data,models]"
 First train locally. The default runs all four objectives; individual or
 multiple objectives can be selected as above. Then configure the two
 post-training workflows once. The source must point at a pushed revision
-containing the MLOps code; do not put credentials in the URL:
+containing the MLOps code; do not put credentials in the URL. The inference
+and evaluation functions request 1 GiB of memory and have a 4 GiB limit:
 
 ```text
 ina-train-models
 ina-mlrun-setup --source "git://github.com/<owner>/<repository>.git#<branch>"
 ```
+
+If a function is already registered, rerun `ina-mlrun-setup` after pushing
+this configuration change, then resubmit the failed workflow. The cluster
+must have enough allocatable memory on a node for the 1 GiB request; if it
+does not, use smaller configured resources or a larger-memory node.
 
 Register each selected local model bundle and its `comparison.json` metadata
 with MLRun. By default, all four objectives are registered from
