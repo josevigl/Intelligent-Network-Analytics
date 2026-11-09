@@ -76,7 +76,6 @@ def configure_mlrun_project(
         (repository_root / "pipelines" / "mlrun_components.py").resolve()
     )
     functions = (
-        ("ina-telecomts-inference-loader", "load_inference_dataset_component"),
         ("ina-batch-inference", "batch_inference_component"),
         ("ina-model-evaluation", "evaluate_registered_model_component"),
     )

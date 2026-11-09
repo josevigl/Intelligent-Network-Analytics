@@ -31,40 +31,11 @@ def _decode_json_value(value: Any, name: str) -> Any:
         raise ValueError(f"{name} must contain valid JSON.") from error
 
 
-def load_inference_dataset_component(
-    context: Any,
-    dataset_name: str = "AliMaatouk/TelecomTS",
-    split: str = "train",
-) -> None:
-    """Load a KPI batch and register it for inference or evaluation."""
+def _load_inference_frame(dataset_name: str, split: str) -> pd.DataFrame:
     frame = load_training_frame(dataset_name, split)
     if "KPIs" not in frame.columns:
         raise ValueError("The input dataset must contain a 'KPIs' column.")
-    context.log_dataset(
-        key="inference_dataset",
-        df=frame,
-        format="parquet",
-        stats=False,
-    )
-    context.log_result("rows", int(len(frame)))
-    context.log_result("columns", int(frame.shape[1]))
-    context.set_label("dataset", dataset_name.replace("/", "-"))
-    context.set_label("source_split", split)
-
-
-def _resolve_frame(dataset: Any) -> pd.DataFrame:
-    if isinstance(dataset, pd.DataFrame):
-        return dataset
-
-    as_dataframe = getattr(dataset, "as_df", None)
-    if callable(as_dataframe):
-        frame = as_dataframe()
-        if isinstance(frame, pd.DataFrame):
-            return frame
-
-    raise TypeError(
-        "The MLRun dataset input must be a pandas DataFrame or expose as_df()."
-    )
+    return frame
 
 
 def _resolve_model_artifact(model_uri: Any) -> TaskModelArtifact:
@@ -246,11 +217,12 @@ def _jsonable_prediction(value: Any) -> Any:
 
 def batch_inference_component(
     context: Any,
-    dataset: Any,
+    dataset_name: str,
+    split: str,
     model_uri: str,
 ) -> dict[str, Any]:
     """Run a registered model over an unlabeled batch and log predictions."""
-    frame = _resolve_frame(dataset)
+    frame = _load_inference_frame(dataset_name, split)
     artifact = _resolve_model_artifact(model_uri)
     result = predict_task_component(frame, artifact)
     records = [
@@ -295,15 +267,14 @@ def batch_inference_component(
 
 def evaluate_registered_model_component(
     context: Any,
-    dataset: Any,
+    dataset_name: str,
+    split: str,
     model_uri: str,
     holdout_manifest_uri: str,
-    dataset_name: str,
-    source_split: str,
     project_config_json: Any,
 ) -> dict[str, Any]:
     """Evaluate a registered model on its data-verified held-out partition."""
-    frame = _resolve_frame(dataset)
+    frame = _load_inference_frame(dataset_name, split)
     artifact = _resolve_model_artifact(model_uri)
     manifest = _resolve_json_artifact(holdout_manifest_uri)
     project_config = _decode_json_value(project_config_json, "project_config_json")
@@ -315,7 +286,7 @@ def evaluate_registered_model_component(
         raise ValueError(
             "The requested source dataset differs from the registered holdout."
         )
-    if manifest.get("source_split") != source_split:
+    if manifest.get("source_split") != split:
         raise ValueError(
             "The requested source split differs from the registered holdout."
         )

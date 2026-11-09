@@ -25,7 +25,7 @@ notebooks = [
     "matplotlib>=3.7",
     "seaborn>=0.13",
 ]
-mlrun = ["mlrun[kfp18,s3]>=1.8,<2"]
+mlrun = ["mlrun[kfp18,s3]>=1.12,<1.13"]
 test = ["pytest>=7.0"]
 
 [project.scripts]

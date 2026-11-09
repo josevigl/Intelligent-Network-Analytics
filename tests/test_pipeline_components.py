@@ -36,7 +36,6 @@ from pipelines.train_models import run_model_comparison_pipeline
 from src.models.estimators import SafeBinaryLogisticRegression
 from pipelines.mlrun_components import (
     _decode_json_value,
-    _resolve_frame,
     batch_inference_component,
     evaluate_registered_model_component,
     register_model_component,
@@ -73,6 +72,34 @@ class PipelineComponentTests(unittest.TestCase):
             {definition.name for definition in pipeline_definitions},
             {"inference_pipeline", "evaluation_pipeline"},
         )
+        function_calls = [
+            node
+            for node in ast.walk(module)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "run_function"
+        ]
+        handlers = {
+            next(
+                keyword.value.value
+                for keyword in call.keywords
+                if keyword.arg == "handler"
+            )
+            for call in function_calls
+        }
+        self.assertEqual(
+            handlers,
+            {
+                "batch_inference_component",
+                "evaluate_registered_model_component",
+            },
+        )
+        self.assertTrue(
+            all(
+                all(keyword.arg != "inputs" for keyword in call.keywords)
+                for call in function_calls
+            )
+        )
 
     def test_mlrun_setup_registers_only_post_training_functions_and_workflows(self) -> None:
         self.assertIn("boto3>=1.26", RUNTIME_REQUIREMENTS)
@@ -93,7 +120,6 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(
             [call.kwargs["handler"] for call in project.set_function.call_args_list],
             [
-                "load_inference_dataset_component",
                 "batch_inference_component",
                 "evaluate_registered_model_component",
             ],
@@ -102,7 +128,7 @@ class PipelineComponentTests(unittest.TestCase):
             [call.kwargs["handler"] for call in project.set_workflow.call_args_list],
             ["inference_pipeline", "evaluation_pipeline"],
         )
-        self.assertEqual(project.set_function.call_count, 3)
+        self.assertEqual(project.set_function.call_count, 2)
         project.build_image.assert_called_once_with()
 
     def test_holdout_manifest_rejects_dataset_config_and_split_changes(self) -> None:
@@ -212,13 +238,18 @@ class PipelineComponentTests(unittest.TestCase):
                 return_value=model,
             ),
             patch(
+                "pipelines.mlrun_components.load_training_frame",
+                return_value=pd.DataFrame({"KPIs": [{}, {}, {}]}),
+            ),
+            patch(
                 "pipelines.mlrun_components.predict_task_component",
                 return_value=prediction,
             ),
         ):
             result = batch_inference_component(
                 context,
-                dataset=pd.DataFrame({"KPIs": [{}, {}, {}]}),
+                dataset_name="example/dataset",
+                split="train",
                 model_uri="store://models/test/model",
             )
 
@@ -385,6 +416,10 @@ class PipelineComponentTests(unittest.TestCase):
                 return_value=model,
             ),
             patch(
+                "pipelines.mlrun_components.load_training_frame",
+                return_value=frame,
+            ),
+            patch(
                 "pipelines.mlrun_components._resolve_json_artifact",
                 return_value={
                     "dataset_name": "example/dataset",
@@ -405,11 +440,10 @@ class PipelineComponentTests(unittest.TestCase):
         ):
             result = evaluate_registered_model_component(
                 context,
-                dataset=frame,
+                dataset_name="example/dataset",
+                split="train",
                 model_uri="store://models/test/model",
                 holdout_manifest_uri="store://artifacts/holdout",
-                dataset_name="example/dataset",
-                source_split="train",
                 project_config_json={},
             )
 

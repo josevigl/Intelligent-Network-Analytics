@@ -171,3 +171,5 @@ if those differed at registration. Do not retrain between registration and
 evaluation or change the data/configuration: the manifest check intentionally
 rejects mismatches. Configure a serving runtime and monitoring stack
 separately when the registry, inference, and evaluation flow has been verified.
+Inference and evaluation load the dataset in their respective MLRun function;
+the full DataFrame is not serialized as an intermediate pipeline parameter.
