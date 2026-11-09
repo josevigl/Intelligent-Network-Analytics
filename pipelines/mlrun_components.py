@@ -13,7 +13,6 @@ from pipelines.train import load_training_frame
 from src.artifacts import (
     TaskModelArtifact,
     load_task_artifact,
-    load_task_artifact_bytes,
 )
 from src.evaluation.holdout import config_fingerprint, validate_holdout_manifest
 from src.evaluation.metrics import summarize_task_metrics
@@ -46,12 +45,10 @@ def _resolve_model_artifact(model_uri: Any) -> TaskModelArtifact:
     if not isinstance(model_uri, str) or not model_uri:
         raise TypeError("model_uri must be a non-empty local path or MLRun URI.")
 
-    import mlrun
+    from mlrun.artifacts import get_model
 
-    payload = mlrun.get_dataitem(model_uri).get()
-    if isinstance(payload, bytearray):
-        payload = bytes(payload)
-    return load_task_artifact_bytes(payload)
+    model_file, _, _ = get_model(model_uri, suffix=".joblib")
+    return load_task_artifact(model_file)
 
 
 def _resolve_json_artifact(artifact_uri: str) -> dict[str, Any]:

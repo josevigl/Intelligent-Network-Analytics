@@ -206,6 +206,36 @@ class PipelineComponentTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "valid JSON"):
             _decode_json_value("{", "config")
 
+    def test_mlrun_model_uri_resolves_registered_model_file(self) -> None:
+        model_uri = "store://models/test/model:v1"
+        model_file = "C:/tmp/model_bundle.joblib"
+        artifact = SimpleNamespace(task_name="binary_detection")
+        mlrun_artifacts_module = SimpleNamespace(
+            get_model=unittest.mock.Mock(
+                return_value=(model_file, SimpleNamespace(), {})
+            )
+        )
+        with (
+            patch.dict(
+                "sys.modules",
+                {"mlrun.artifacts": mlrun_artifacts_module},
+            ),
+            patch(
+                "pipelines.mlrun_components.load_task_artifact",
+                return_value=artifact,
+            ) as load_artifact,
+        ):
+            from pipelines.mlrun_components import _resolve_model_artifact
+
+            result = _resolve_model_artifact(model_uri)
+
+        self.assertIs(result, artifact)
+        mlrun_artifacts_module.get_model.assert_called_once_with(
+            model_uri,
+            suffix=".joblib",
+        )
+        load_artifact.assert_called_once_with(model_file)
+
     def test_mlrun_batch_inference_logs_json_predictions(self) -> None:
         class Context:
             def __init__(self) -> None:

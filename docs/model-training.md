@@ -157,6 +157,9 @@ inference on the available source `train` split:
 ina-mlrun-infer --model-uri "<registered-model-uri>"
 ```
 
+The inference component resolves this registry URI to the stored `.joblib`
+bundle through MLRun's model-artifact API before loading it.
+
 Evaluate the registered model on its recorded held-out test partition:
 
 ```text
