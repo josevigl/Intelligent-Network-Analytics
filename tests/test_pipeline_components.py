@@ -324,13 +324,19 @@ class PipelineComponentTests(unittest.TestCase):
         self.assertEqual(context.models[0]["key"], "binary_detection")
         self.assertEqual(context.models[0]["algorithm"], "random_forest")
         self.assertEqual(context.models[0]["metrics"]["cv_f1_macro_mean"], 0.8)
+        self.assertNotIn("extra_data", context.models[0])
         self.assertEqual(
-            context.models[0]["extra_data"]["dataset_sha256"],
-            "abc123",
+            context.models[0]["labels"]["code_revision"],
+            "a" * 12,
         )
         self.assertEqual(
             [item for item, _ in context.artifacts],
             ["binary_detection_holdout_manifest", "binary_detection_comparison"],
+        )
+        manifest_artifact = context.artifacts[0][1]
+        self.assertEqual(
+            json.loads(manifest_artifact["body"].decode("utf-8")),
+            manifest,
         )
 
     def test_mlrun_evaluation_scores_registered_model_without_training(self) -> None:

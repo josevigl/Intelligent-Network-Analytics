@@ -194,14 +194,6 @@ def register_model_component(
             "dataset": dataset_name.replace("/", "-"),
             "code_revision": code_revision[:12],
         },
-        extra_data={
-            "dataset_name": dataset_name,
-            "source_split": source_split,
-            "dataset_sha256": manifest["dataset_sha256"],
-            "project_config_sha256": manifest["project_config_sha256"],
-            "code_revision": code_revision,
-            "holdout_manifest": manifest,
-        },
     )
     model_uri = _artifact_uri(model_record, artifact.task_name)
     manifest_record = context.log_artifact(
