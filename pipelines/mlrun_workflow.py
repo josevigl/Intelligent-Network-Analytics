@@ -28,8 +28,8 @@ def inference_pipeline(
         },
         outputs=["predictions"],
     )
-    task.set_memory_request(FUNCTION_MEMORY_REQUEST)
-    task.set_memory_limit(FUNCTION_MEMORY_LIMIT)
+    task.container.set_memory_request(FUNCTION_MEMORY_REQUEST)
+    task.container.set_memory_limit(FUNCTION_MEMORY_LIMIT)
 
 
 @dsl.pipeline(
@@ -58,5 +58,5 @@ def evaluation_pipeline(
         },
         outputs=["evaluation"],
     )
-    task.set_memory_request(FUNCTION_MEMORY_REQUEST)
-    task.set_memory_limit(FUNCTION_MEMORY_LIMIT)
+    task.container.set_memory_request(FUNCTION_MEMORY_REQUEST)
+    task.container.set_memory_limit(FUNCTION_MEMORY_LIMIT)

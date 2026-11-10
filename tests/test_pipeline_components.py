@@ -111,14 +111,18 @@ class PipelineComponentTests(unittest.TestCase):
         ]
         self.assertEqual(
             [
-                (call.func.attr, call.args[0].id)
+                (
+                    call.func.value.attr,
+                    call.func.attr,
+                    call.args[0].id,
+                )
                 for call in resource_overrides
             ],
             [
-                ("set_memory_request", "FUNCTION_MEMORY_REQUEST"),
-                ("set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
-                ("set_memory_request", "FUNCTION_MEMORY_REQUEST"),
-                ("set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
+                ("container", "set_memory_request", "FUNCTION_MEMORY_REQUEST"),
+                ("container", "set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
+                ("container", "set_memory_request", "FUNCTION_MEMORY_REQUEST"),
+                ("container", "set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
             ],
         )
 
