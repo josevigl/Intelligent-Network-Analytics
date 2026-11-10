@@ -102,6 +102,25 @@ class PipelineComponentTests(unittest.TestCase):
                 for call in function_calls
             )
         )
+        resource_overrides = [
+            node
+            for node in ast.walk(module)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"set_memory_request", "set_memory_limit"}
+        ]
+        self.assertEqual(
+            [
+                (call.func.attr, call.args[0].id)
+                for call in resource_overrides
+            ],
+            [
+                ("set_memory_request", "FUNCTION_MEMORY_REQUEST"),
+                ("set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
+                ("set_memory_request", "FUNCTION_MEMORY_REQUEST"),
+                ("set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
+            ],
+        )
 
     def test_mlrun_setup_registers_only_post_training_functions_and_workflows(self) -> None:
         self.assertIn("boto3>=1.26", RUNTIME_REQUIREMENTS)

@@ -3,6 +3,11 @@
 import mlrun
 from kfp import dsl
 
+from pipelines.mlrun_project import (
+    FUNCTION_MEMORY_LIMIT,
+    FUNCTION_MEMORY_REQUEST,
+)
+
 
 @dsl.pipeline(
     name="ina-batch-inference",
@@ -13,7 +18,7 @@ def inference_pipeline(
     split: str,
     model_uri: str,
 ) -> None:
-    mlrun.run_function(
+    task = mlrun.run_function(
         "ina-batch-inference",
         handler="batch_inference_component",
         params={
@@ -23,6 +28,8 @@ def inference_pipeline(
         },
         outputs=["predictions"],
     )
+    task.set_memory_request(FUNCTION_MEMORY_REQUEST)
+    task.set_memory_limit(FUNCTION_MEMORY_LIMIT)
 
 
 @dsl.pipeline(
@@ -39,7 +46,7 @@ def evaluation_pipeline(
     holdout_manifest_uri: str,
     project_config_json: str,
 ) -> None:
-    mlrun.run_function(
+    task = mlrun.run_function(
         "ina-model-evaluation",
         handler="evaluate_registered_model_component",
         params={
@@ -51,3 +58,5 @@ def evaluation_pipeline(
         },
         outputs=["evaluation"],
     )
+    task.set_memory_request(FUNCTION_MEMORY_REQUEST)
+    task.set_memory_limit(FUNCTION_MEMORY_LIMIT)
