@@ -164,7 +164,9 @@ ina-mlrun-infer --model-uri "<registered-model-uri>"
 ```
 
 The inference component resolves this registry URI to the stored `.joblib`
-bundle through MLRun's model-artifact API before loading it.
+bundle through MLRun's model-artifact API before loading it. The launcher
+synchronizes registered functions before submitting the workflow so new
+function resources are used by newly submitted runs.
 
 Evaluate the registered model on its recorded held-out test partition:
 

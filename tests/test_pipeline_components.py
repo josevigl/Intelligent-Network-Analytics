@@ -679,6 +679,7 @@ class PipelineComponentTests(unittest.TestCase):
             project.run.call_args.kwargs["workflow_handler"],
             "evaluation_pipeline",
         )
+        self.assertTrue(project.run.call_args.kwargs["sync"])
         with patch.dict("sys.modules", {"mlrun": mlrun_module}):
             with self.assertRaisesRegex(ValueError, "holdout manifest"):
                 register_and_run_batch_pipeline(

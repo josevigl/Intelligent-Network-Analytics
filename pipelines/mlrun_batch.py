@@ -54,6 +54,7 @@ def register_and_run_batch_pipeline(
         name=workflow_name,
         workflow_handler=workflow_handler,
         arguments=arguments,
+        sync=True,
         watch=watch,
     )
 
