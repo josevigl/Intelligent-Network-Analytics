@@ -26,7 +26,8 @@ notebooks = [
     "seaborn>=0.13",
 ]
 mlrun = ["mlrun[kfp18,s3]>=1.12,<1.13"]
-test = ["pytest>=7.0"]
+app = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
+test = ["pytest>=7.0", "httpx>=0.24"]
 
 [project.scripts]
 ina-train = "pipelines.train:main"
@@ -36,8 +37,9 @@ ina-mlrun-setup = "pipelines.mlrun_setup:main"
 ina-mlrun-register = "pipelines.mlrun_registry:main"
 ina-mlrun-infer = "pipelines.mlrun_batch:inference_main"
 ina-mlrun-evaluate = "pipelines.mlrun_batch:evaluation_main"
+ina-app = "app.api:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "pipelines*"]
+include = ["app*", "src*", "pipelines*"]
 exclude = ["tests*"]
