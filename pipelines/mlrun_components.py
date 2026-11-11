@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import sklearn
 
 from pipelines.train import load_training_frame
 from src.artifacts import (
@@ -39,16 +40,26 @@ def _load_inference_frame(dataset_name: str, split: str) -> pd.DataFrame:
 
 def _resolve_model_artifact(model_uri: Any) -> TaskModelArtifact:
     if isinstance(model_uri, TaskModelArtifact):
-        return model_uri
-    if isinstance(model_uri, (str, Path)) and Path(model_uri).exists():
-        return load_task_artifact(model_uri)
-    if not isinstance(model_uri, str) or not model_uri:
-        raise TypeError("model_uri must be a non-empty local path or MLRun URI.")
+        artifact = model_uri
+    elif isinstance(model_uri, (str, Path)) and Path(model_uri).exists():
+        artifact = load_task_artifact(model_uri)
+    else:
+        if not isinstance(model_uri, str) or not model_uri:
+            raise TypeError("model_uri must be a non-empty local path or MLRun URI.")
 
-    from mlrun.artifacts import get_model
+        from mlrun.artifacts import get_model
 
-    model_file, _, _ = get_model(model_uri, suffix=".joblib")
-    return load_task_artifact(model_file)
+        model_file, _, _ = get_model(model_uri, suffix=".joblib")
+        artifact = load_task_artifact(model_file)
+
+    artifact_version = artifact.library_versions.get("scikit_learn")
+    if artifact_version and artifact_version != sklearn.__version__:
+        raise RuntimeError(
+            "The model bundle was created with scikit-learn "
+            f"{artifact_version}, but this runtime uses {sklearn.__version__}. "
+            "Rebuild the MLRun image with the project's pinned dependencies."
+        )
+    return artifact
 
 
 def _resolve_json_artifact(artifact_uri: str) -> dict[str, Any]:

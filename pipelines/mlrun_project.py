@@ -5,6 +5,8 @@ from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
 
+SCIKIT_LEARN_VERSION = "1.9.1"
+
 RUNTIME_REQUIREMENTS = [
     "boto3>=1.26",
     "datasets>=2.14",
@@ -13,7 +15,7 @@ RUNTIME_REQUIREMENTS = [
     "numpy>=1.24",
     "pandas>=2.0",
     "PyYAML>=6.0",
-    "scikit-learn>=1.3",
+    f"scikit-learn=={SCIKIT_LEARN_VERSION}",
     "xgboost>=2.0",
 ]
 

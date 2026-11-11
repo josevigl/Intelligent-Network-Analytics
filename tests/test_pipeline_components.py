@@ -44,6 +44,7 @@ from pipelines.mlrun_project import (
     FUNCTION_MEMORY_LIMIT,
     FUNCTION_MEMORY_REQUEST,
     RUNTIME_REQUIREMENTS,
+    SCIKIT_LEARN_VERSION,
     configure_mlrun_project,
     validate_source,
 )
@@ -128,6 +129,10 @@ class PipelineComponentTests(unittest.TestCase):
 
     def test_mlrun_setup_registers_only_post_training_functions_and_workflows(self) -> None:
         self.assertIn("boto3>=1.26", RUNTIME_REQUIREMENTS)
+        self.assertIn(
+            f"scikit-learn=={SCIKIT_LEARN_VERSION}",
+            RUNTIME_REQUIREMENTS,
+        )
         project = unittest.mock.Mock()
         project.name = "ina-test"
         mlrun_module = SimpleNamespace(
@@ -246,7 +251,10 @@ class PipelineComponentTests(unittest.TestCase):
     def test_mlrun_model_uri_resolves_registered_model_file(self) -> None:
         model_uri = "store://models/test/model:v1"
         model_file = "C:/tmp/model_bundle.joblib"
-        artifact = SimpleNamespace(task_name="binary_detection")
+        artifact = SimpleNamespace(
+            task_name="binary_detection",
+            library_versions={"scikit_learn": SCIKIT_LEARN_VERSION},
+        )
         mlrun_artifacts_module = SimpleNamespace(
             get_model=unittest.mock.Mock(
                 return_value=(model_file, SimpleNamespace(), {})
@@ -272,6 +280,29 @@ class PipelineComponentTests(unittest.TestCase):
             suffix=".joblib",
         )
         load_artifact.assert_called_once_with(model_file)
+
+    def test_mlrun_model_uri_rejects_scikit_learn_version_mismatch(self) -> None:
+        artifact = SimpleNamespace(
+            task_name="affected_kpis",
+            library_versions={"scikit_learn": "1.9.1"},
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            model_path = Path(temporary) / "model_bundle.joblib"
+            model_path.touch()
+            with (
+                patch(
+                    "pipelines.mlrun_components.load_task_artifact",
+                    return_value=artifact,
+                ),
+                patch("pipelines.mlrun_components.sklearn.__version__", "1.7.2"),
+            ):
+                from pipelines.mlrun_components import _resolve_model_artifact
+
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "created with scikit-learn 1.9.1.*runtime uses 1.7.2",
+                ):
+                    _resolve_model_artifact(model_path)
 
     def test_mlrun_batch_inference_logs_json_predictions(self) -> None:
         class Context:

@@ -168,7 +168,9 @@ ina-mlrun-infer --model-uri "<registered-model-uri>"
 The inference component resolves this registry URI to the stored `.joblib`
 bundle through MLRun's model-artifact API before loading it. The launcher
 synchronizes registered functions before submitting the workflow so new
-function resources are used by newly submitted runs.
+function resources are used by newly submitted runs. Training and inference
+use the same pinned scikit-learn version because joblib model bundles are not
+portable across arbitrary scikit-learn versions.
 
 Evaluate the registered model on its recorded held-out test partition:
 
