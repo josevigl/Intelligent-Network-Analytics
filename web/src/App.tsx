@@ -67,6 +67,7 @@ import type {
   Overview,
   Prediction,
   PredictionSummary,
+  RandomTestSample,
   ScreenId,
 } from "./types";
 
@@ -602,6 +603,9 @@ function DetectionPage({
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [sampleLoading, setSampleLoading] = useState(false);
+  const [sampleStatus, setSampleStatus] = useState<"any" | "normal" | "anomaly">("any");
+  const [sampleReference, setSampleReference] = useState<RandomTestSample | null>(null);
   const [dragging, setDragging] = useState(false);
   const [selectedKpis, setSelectedKpis] = useState(["RSRP", "UL_SNR"]);
   const prediction = active;
@@ -609,6 +613,7 @@ function DetectionPage({
   const acceptFile = async (file?: File) => {
     if (!file) return;
     setError("");
+    setSampleReference(null);
     onClearPrediction();
     try {
       if (!file.name.toLowerCase().endsWith(".json")) throw new Error("Please choose a .json file.");
@@ -651,6 +656,26 @@ function DetectionPage({
     }
   };
 
+  const downloadRandomSample = async () => {
+    setSampleLoading(true);
+    setError("");
+    onClearPrediction();
+    try {
+      const sample = await api.randomTestSample(sampleStatus);
+      setKpis(sample.KPIs);
+      setFileName(`TelecomTS held-out test window · row ${sample.source.row_position}`);
+      setSampleReference(sample);
+      downloadJson(
+        `telecomts-test-window-${sample.source.row_position}.json`,
+        { KPIs: sample.KPIs },
+      );
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not load a TelecomTS test sample.");
+    } finally {
+      setSampleLoading(false);
+    }
+  };
+
   const chartData = useMemo(() => {
     if (!kpis) return [];
     return Array.from({ length: 128 }, (_, step) => {
@@ -673,7 +698,7 @@ function DetectionPage({
 
   return (
     <>
-      <PageHeader screen="detection" action={<Button onClick={() => { setKpis(null); setFileName(""); setError(""); onClearPrediction(); }}><X size={15} /> New analysis</Button>} />
+      <PageHeader screen="detection" action={<Button onClick={() => { setKpis(null); setFileName(""); setError(""); setSampleReference(null); onClearPrediction(); }}><X size={15} /> New analysis</Button>} />
       <div className="input-layout">
         <Panel title="KPI Data Input" subtitle="Upload one 128-timestep network window in NEXUS JSON format" className="input-panel">
           <div
@@ -699,6 +724,22 @@ function DetectionPage({
               <div><strong>2</strong><span>categorical</span></div>
             </div>
           )}
+          {sampleReference && (
+            <div className="sample-provenance">
+              <span className="eyebrow">DATASET REFERENCE · NOT MODEL OUTPUT</span>
+              <div>
+                <StatusBadge status={sampleReference.reference.anomaly_status} />
+                <strong>{sampleReference.reference.anomaly_type.replaceAll("_", " ")}</strong>
+              </div>
+              <p>
+                {sampleReference.source.dataset} · source <code>{sampleReference.source.source_split}</code>,
+                internal held-out <code>{sampleReference.source.partition}</code> · row {sampleReference.source.row_position}
+              </p>
+              {sampleReference.reference.affected_kpis.length > 0 && (
+                <div className="kpi-tags">{sampleReference.reference.affected_kpis.map((kpi) => <span key={kpi}>{kpi}</span>)}</div>
+              )}
+            </div>
+          )}
           <div className="input-actions">
             <Button variant="primary" disabled={!kpis || loading} onClick={() => void runAnalysis()}>
               {loading ? <LoaderCircle className="spin" size={16} /> : <Radar size={16} />}
@@ -706,6 +747,14 @@ function DetectionPage({
             </Button>
             <button className="text-link template-link" onClick={() => downloadTemplate()}><ArrowDownToLine size={14} /> Download JSON template</button>
           </div>
+          <div className="real-sample-actions">
+            <label className="filter-select"><span>REFERENCE</span><select aria-label="Sample reference class" value={sampleStatus} onChange={(event) => setSampleStatus(event.target.value as "any" | "normal" | "anomaly")}><option value="any">Any class</option><option value="normal">Normal</option><option value="anomaly">Anomaly</option></select></label>
+            <Button disabled={sampleLoading || loading} onClick={() => void downloadRandomSample()}>
+              {sampleLoading ? <LoaderCircle className="spin" size={14} /> : <ArrowDownToLine size={14} />}
+              {sampleLoading ? "Selecting test sample…" : "Download real test sample"}
+            </Button>
+          </div>
+          <p className="sample-source-note">Random real KPI window from the saved internal test holdout. The reference label is shown separately from the model prediction.</p>
           <p className="privacy-note"><ShieldCheck size={14} /> KPI windows are stored locally in SQLite to support prediction history.</p>
         </Panel>
         <aside className="analysis-aside">
@@ -741,14 +790,18 @@ function DetectionPage({
   );
 }
 
-function downloadTemplate() {
-  const blob = new Blob([JSON.stringify({ KPIs: makeTemplate() }, null, 2)], { type: "application/json" });
+function downloadJson(fileName: string, value: unknown) {
+  const blob = new Blob([JSON.stringify(value, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "nexus5g-kpi-template.json";
+  link.download = fileName;
   link.click();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function downloadTemplate() {
+  downloadJson("nexus5g-kpi-template.json", { KPIs: makeTemplate() });
 }
 
 function ScoreGauge({ value }: { value: number }) {

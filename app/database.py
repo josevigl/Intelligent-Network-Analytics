@@ -8,6 +8,8 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
+from app.settings import public_demo_enabled
+
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE_PATH = PROJECT_ROOT / "results" / "app" / "predictions.sqlite3"
@@ -48,6 +50,8 @@ def _connect() -> Iterator[sqlite3.Connection]:
 
 
 def save_prediction(record: dict[str, Any]) -> None:
+    if public_demo_enabled():
+        raise RuntimeError("Prediction persistence is disabled in public demo mode.")
     with _connect() as connection:
         connection.execute(
             """

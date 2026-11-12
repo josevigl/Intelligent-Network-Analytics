@@ -2,8 +2,10 @@
 
 from functools import lru_cache
 import json
+import math
 import os
 from pathlib import Path
+import random
 import time
 import uuid
 from datetime import datetime, timezone
@@ -13,7 +15,10 @@ import numpy as np
 import pandas as pd
 
 from app.database import get_prediction, list_predictions, prediction_counts, save_prediction
+from app.settings import public_demo_enabled
 from src.artifacts import TaskModelArtifact, load_task_artifact
+from src.config import load_pipeline_config
+from src.evaluation.holdout import config_fingerprint
 from src.inference import predict_task_component
 from src.models.training import summarize_windows
 from src.preprocessing.data import (
@@ -34,6 +39,145 @@ TASK_TITLES = {
 
 def _models_root() -> Path:
     return Path(os.environ.get("INA_MODELS_PATH", PROJECT_ROOT / "results" / "models"))
+
+
+@lru_cache(maxsize=1)
+def _test_sample_source() -> tuple[Any, tuple[int, ...], dict[str, Any]]:
+    comparison_path = _models_root() / "binary_detection" / "comparison.json"
+    if not comparison_path.is_file():
+        raise FileNotFoundError(
+            f"Test-split provenance is missing: {comparison_path}"
+        )
+    comparison = json.loads(comparison_path.read_text(encoding="utf-8"))
+    provenance = comparison.get("holdout_provenance")
+    if not isinstance(provenance, dict):
+        raise ValueError("Binary-detection comparison has no holdout provenance.")
+    dataset_name = provenance.get("dataset_name")
+    source_split = provenance.get("source_split")
+    dataset_sha256 = provenance.get("dataset_sha256")
+    positions = provenance.get("test_positions")
+    if dataset_name != "AliMaatouk/TelecomTS":
+        raise ValueError(
+            "The saved test samples are not from AliMaatouk/TelecomTS."
+        )
+    if source_split != "train":
+        raise ValueError("Expected the TelecomTS train source split in model provenance.")
+    if (
+        not isinstance(dataset_sha256, str)
+        or len(dataset_sha256) != 64
+        or any(character not in "0123456789abcdef" for character in dataset_sha256)
+    ):
+        raise ValueError("A valid source dataset fingerprint is missing.")
+    if not isinstance(positions, list) or not positions:
+        raise ValueError("Held-out test positions are missing from model provenance.")
+    if provenance.get("test_sample_count") != len(positions):
+        raise ValueError("Held-out test positions do not match their recorded count.")
+    if any(not isinstance(position, int) or position < 0 for position in positions):
+        raise ValueError("Held-out test positions must be non-negative integers.")
+    if len(set(positions)) != len(positions):
+        raise ValueError("Held-out test positions contain duplicates.")
+
+    config = load_pipeline_config()
+    if provenance.get("project_config_sha256") != config_fingerprint(config):
+        raise ValueError(
+            "The current project config differs from the config used for the "
+            "saved test partition."
+        )
+    try:
+        from datasets import load_dataset
+    except ImportError as error:
+        raise ImportError(
+            "Downloading a real test sample requires the optional 'data' "
+            "dependencies. Install with: python -m pip install -e \".[app,data]\""
+        ) from error
+
+    dataset = load_dataset(dataset_name, split=source_split)
+    if max(positions) >= len(dataset):
+        raise ValueError(
+            "The cached source dataset is shorter than the saved test positions."
+        )
+    return dataset, tuple(positions), provenance
+
+
+def _sample_kpis(raw_kpis: Any) -> dict[str, list[Any]] | None:
+    if not isinstance(raw_kpis, dict) or set(KPI_COLUMNS) - set(raw_kpis):
+        return None
+    normalized: dict[str, list[Any]] = {}
+    for channel in KPI_COLUMNS:
+        values = raw_kpis[channel]
+        if not isinstance(values, (list, tuple, np.ndarray)) or len(values) != 128:
+            return None
+        channel_values = []
+        for value in values:
+            try:
+                missing = pd.isna(value)
+            except (TypeError, ValueError):
+                missing = False
+            if isinstance(missing, (bool, np.bool_)) and missing:
+                channel_values.append(None)
+            elif channel in {"DL_Protocol", "UL_Protocol"}:
+                if not isinstance(value, str):
+                    return None
+                channel_values.append(value)
+            else:
+                try:
+                    number = float(value)
+                except (TypeError, ValueError, OverflowError):
+                    return None
+                channel_values.append(number if math.isfinite(number) else None)
+        normalized[channel] = channel_values
+    return normalized
+
+
+def random_test_sample(status: str = "any") -> dict[str, Any]:
+    if status not in {"any", "normal", "anomaly"}:
+        raise ValueError("Sample status must be 'any', 'normal', or 'anomaly'.")
+    dataset, positions, provenance = _test_sample_source()
+    candidates = list(positions)
+    random.SystemRandom().shuffle(candidates)
+    for position in candidates:
+        row = dataset[position]
+        annotation = row.get("anomalies")
+        if not isinstance(annotation, dict):
+            continue
+        exists = annotation.get("exists")
+        is_anomaly = isinstance(exists, (bool, np.bool_)) and bool(exists)
+        if status != "any" and (status == "anomaly") != is_anomaly:
+            continue
+        kpis = _sample_kpis(row.get("KPIs"))
+        if kpis is None:
+            continue
+        anomaly_type = annotation.get("type")
+        if not is_anomaly or not isinstance(anomaly_type, str) or not anomaly_type:
+            anomaly_type = "Normal"
+        affected = annotation.get("affected_kpis", ())
+        if isinstance(affected, np.ndarray):
+            affected = affected.tolist()
+        affected_kpis = sorted(
+            {
+                item
+                for item in affected
+                if isinstance(item, str) and item in KPI_COLUMNS
+            }
+        ) if isinstance(affected, (list, tuple, set)) else []
+        return {
+            "KPIs": kpis,
+            "source": {
+                "dataset": provenance["dataset_name"],
+                "source_split": provenance["source_split"],
+                "partition": "test",
+                "row_position": position,
+                "dataset_sha256": provenance["dataset_sha256"],
+            },
+            "reference": {
+                "anomaly_status": "anomaly" if is_anomaly else "normal",
+                "anomaly_type": anomaly_type,
+                "affected_kpis": affected_kpis,
+            },
+        }
+    raise ValueError(
+        f"No valid held-out test sample is available for status {status!r}."
+    )
 
 
 @lru_cache(maxsize=4)
@@ -262,12 +406,22 @@ def run_prediction(sample_id: str | None, input_kpis: dict[str, list[Any]]) -> d
         },
         "input": {"KPIs": input_kpis},
     }
-    save_prediction(record)
+    if not public_demo_enabled():
+        save_prediction(record)
     return record
 
 
 def get_overview() -> dict[str, Any]:
-    counts = prediction_counts()
+    counts = (
+        {
+            "total": 0,
+            "anomalies": 0,
+            "average_inference_ms": 0,
+            "categories": [],
+        }
+        if public_demo_enabled()
+        else prediction_counts()
+    )
     models = get_models()
     return {
         "data_source": "Local model artifacts and analyses run through this app",
@@ -278,7 +432,7 @@ def get_overview() -> dict[str, Any]:
         "models_available": sum(item["available"] for item in models),
         "models": models,
         "categories": counts["categories"],
-        "recent_predictions": list_predictions(limit=8),
+        "recent_predictions": [] if public_demo_enabled() else list_predictions(limit=8),
         "dataset_baseline": {
             "name": "AliMaatouk/TelecomTS",
             "split": "train",
@@ -323,7 +477,11 @@ def get_models() -> list[dict[str, Any]]:
                     "version": None,
                     "available": False,
                     "metrics": {},
-                    "error": str(error),
+                    "error": (
+                        "Model unavailable."
+                        if public_demo_enabled()
+                        else str(error)
+                    ),
                 }
             )
     return models
@@ -335,8 +493,12 @@ def history(
     anomaly_status: str | None = None,
     predicted_type: str | None = None,
 ) -> list[dict[str, Any]]:
+    if public_demo_enabled():
+        return []
     return list_predictions(limit, search, anomaly_status, predicted_type)
 
 
 def prediction_detail(prediction_id: str) -> dict[str, Any] | None:
+    if public_demo_enabled():
+        return None
     return get_prediction(prediction_id)

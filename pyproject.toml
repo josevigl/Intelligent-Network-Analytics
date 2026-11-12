@@ -19,6 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 data = ["datasets>=2.14"]
 models = ["xgboost>=2.0"]
+cpu-serving = ["xgboost-cpu>=3.2,<4"]
 notebooks = [
     "ipykernel>=6.0",
     "jupyter>=1.0",

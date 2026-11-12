@@ -35,6 +35,22 @@ export interface PredictionSummary {
   inference_ms: number;
 }
 
+export interface RandomTestSample {
+  KPIs: KpiInput;
+  source: {
+    dataset: string;
+    source_split: string;
+    partition: "test";
+    row_position: number;
+    dataset_sha256: string;
+  };
+  reference: {
+    anomaly_status: "normal" | "anomaly";
+    anomaly_type: string;
+    affected_kpis: string[];
+  };
+}
+
 export interface Prediction extends PredictionSummary {
   details: {
     tasks: Record<string, TaskPrediction>;

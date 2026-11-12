@@ -4,6 +4,7 @@ import type {
   Overview,
   Prediction,
   PredictionSummary,
+  RandomTestSample,
 } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -26,6 +27,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ status: string }>("/api/health"),
   overview: () => request<Overview>("/api/overview"),
+  randomTestSample: (status: "any" | "normal" | "anomaly" = "any") =>
+    request<RandomTestSample>(`/api/samples/random?status=${status}`),
   models: () => request<ModelInfo[]>("/api/models"),
   history: (query = "") =>
     request<PredictionSummary[]>(`/api/predictions${query ? `?${query}` : ""}`),
