@@ -12,28 +12,35 @@ dependencies = [
     "numpy>=1.24",
     "pandas>=2.0",
     "PyYAML>=6.0",
-    "scikit-learn>=1.3",
+    "scikit-learn==1.9.1",
     "iterative-stratification>=0.1.9",
 ]
 
 [project.optional-dependencies]
 data = ["datasets>=2.14"]
 models = ["xgboost>=2.0"]
+cpu-serving = ["xgboost-cpu>=3.2,<4"]
 notebooks = [
     "ipykernel>=6.0",
     "jupyter>=1.0",
     "matplotlib>=3.7",
     "seaborn>=0.13",
 ]
-mlrun = ["mlrun"]
-test = ["pytest>=7.0"]
+mlrun = ["mlrun[kfp18,s3]>=1.12,<1.13"]
+app = ["fastapi>=0.115", "uvicorn[standard]>=0.30"]
+test = ["pytest>=7.0", "httpx>=0.24"]
 
 [project.scripts]
 ina-train = "pipelines.train:main"
 ina-infer = "pipelines.inference:main"
 ina-train-models = "pipelines.train_models:main"
+ina-mlrun-setup = "pipelines.mlrun_setup:main"
+ina-mlrun-register = "pipelines.mlrun_registry:main"
+ina-mlrun-infer = "pipelines.mlrun_batch:inference_main"
+ina-mlrun-evaluate = "pipelines.mlrun_batch:evaluation_main"
+ina-app = "app.api:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["src*", "pipelines*"]
+include = ["app*", "src*", "pipelines*"]
 exclude = ["tests*"]

@@ -1,9 +1,11 @@
 """Focused tests for train-only preprocessing and artifact-based inference."""
 
+import ast
 import json
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import numpy as np
@@ -15,6 +17,12 @@ from src.artifacts import (
     save_task_artifact,
 )
 from src.config import load_pipeline_config
+from src.evaluation.holdout import (
+    build_holdout_manifest,
+    config_fingerprint,
+    dataset_fingerprint,
+    validate_holdout_manifest,
+)
 from src.inference import predict_task_component
 from src.models.training import summarize_windows, train_model_component
 from src.preprocessing.pipeline import (
@@ -26,9 +34,719 @@ from pipelines.train import run_training_pipeline
 from src.models.experiments import run_task_model_comparison
 from pipelines.train_models import run_model_comparison_pipeline
 from src.models.estimators import SafeBinaryLogisticRegression
+from pipelines.mlrun_components import (
+    _decode_json_value,
+    batch_inference_component,
+    evaluate_registered_model_component,
+    register_model_component,
+)
+from pipelines.mlrun_project import (
+    FUNCTION_MEMORY_LIMIT,
+    FUNCTION_MEMORY_REQUEST,
+    RUNTIME_REQUIREMENTS,
+    SCIKIT_LEARN_VERSION,
+    configure_mlrun_project,
+    validate_source,
+)
+from pipelines.mlrun_registry import _selected_bundle, register_local_models
+from pipelines.mlrun_batch import register_and_run_batch_pipeline
 
 
 class PipelineComponentTests(unittest.TestCase):
+    def test_mlrun_workflows_only_define_inference_and_evaluation(self) -> None:
+        workflow_path = (
+            Path(__file__).resolve().parents[1]
+            / "pipelines"
+            / "mlrun_workflow.py"
+        )
+        module = ast.parse(workflow_path.read_text(encoding="utf-8"))
+        pipeline_definitions = [
+            node
+            for node in ast.walk(module)
+            if isinstance(node, ast.FunctionDef)
+            and any(
+                isinstance(decorator, ast.Call)
+                and isinstance(decorator.func, ast.Attribute)
+                and decorator.func.attr == "pipeline"
+                for decorator in node.decorator_list
+            )
+        ]
+        self.assertEqual(
+            {definition.name for definition in pipeline_definitions},
+            {"inference_pipeline", "evaluation_pipeline"},
+        )
+        function_calls = [
+            node
+            for node in ast.walk(module)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "run_function"
+        ]
+        handlers = {
+            next(
+                keyword.value.value
+                for keyword in call.keywords
+                if keyword.arg == "handler"
+            )
+            for call in function_calls
+        }
+        self.assertEqual(
+            handlers,
+            {
+                "batch_inference_component",
+                "evaluate_registered_model_component",
+            },
+        )
+        self.assertTrue(
+            all(
+                all(keyword.arg != "inputs" for keyword in call.keywords)
+                for call in function_calls
+            )
+        )
+        resource_overrides = [
+            node
+            for node in ast.walk(module)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"set_memory_request", "set_memory_limit"}
+        ]
+        self.assertEqual(
+            [
+                (
+                    call.func.value.attr,
+                    call.func.attr,
+                    call.args[0].id,
+                )
+                for call in resource_overrides
+            ],
+            [
+                ("container", "set_memory_request", "FUNCTION_MEMORY_REQUEST"),
+                ("container", "set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
+                ("container", "set_memory_request", "FUNCTION_MEMORY_REQUEST"),
+                ("container", "set_memory_limit", "FUNCTION_MEMORY_LIMIT"),
+            ],
+        )
+
+    def test_mlrun_setup_registers_only_post_training_functions_and_workflows(self) -> None:
+        self.assertIn("boto3>=1.26", RUNTIME_REQUIREMENTS)
+        self.assertIn(
+            f"scikit-learn=={SCIKIT_LEARN_VERSION}",
+            RUNTIME_REQUIREMENTS,
+        )
+        project = unittest.mock.Mock()
+        project.name = "ina-test"
+        mlrun_module = SimpleNamespace(
+            get_or_create_project=unittest.mock.Mock(return_value=project)
+        )
+        with patch.dict("sys.modules", {"mlrun": mlrun_module}):
+            configured = configure_mlrun_project(
+                source="git://github.com/example/project.git",
+                project_name="ina-test",
+                base_image="mlrun/mlrun",
+                image=None,
+            )
+
+        self.assertIs(configured, project)
+        self.assertEqual(
+            [call.kwargs["handler"] for call in project.set_function.call_args_list],
+            [
+                "batch_inference_component",
+                "evaluate_registered_model_component",
+            ],
+        )
+        self.assertEqual(
+            [call.kwargs["handler"] for call in project.set_workflow.call_args_list],
+            ["inference_pipeline", "evaluation_pipeline"],
+        )
+        self.assertEqual(project.set_function.call_count, 2)
+        project.set_function.return_value.with_requests.assert_called_with(
+            mem=FUNCTION_MEMORY_REQUEST,
+        )
+        project.set_function.return_value.with_limits.assert_called_with(
+            mem=FUNCTION_MEMORY_LIMIT,
+        )
+        self.assertEqual(FUNCTION_MEMORY_REQUEST, "1Gi")
+        self.assertEqual(FUNCTION_MEMORY_LIMIT, "4Gi")
+        self.assertEqual(
+            project.set_function.return_value.save.call_count,
+            2,
+        )
+        project.build_image.assert_called_once_with()
+
+    def test_holdout_manifest_rejects_dataset_config_and_split_changes(self) -> None:
+        frame = pd.DataFrame({"KPIs": [[{"RSRP": [1.0]}], [{"RSRP": [2.0]}]]})
+        config = {"seed": 7}
+        splits = SimpleNamespace(
+            positions_test=np.asarray([1]),
+            y_test=np.asarray([1]),
+            groups_test=np.asarray(["scenario-b"]),
+        )
+        with patch(
+            "src.evaluation.holdout.prepare_task_data_component",
+            return_value=splits,
+        ):
+            manifest = build_holdout_manifest(
+                frame=frame,
+                task_name="binary_detection",
+                config=config,
+                dataset_name="example/dataset",
+                source_split="train",
+                code_revision="a" * 40,
+            )
+        self.assertEqual(manifest["test_positions"], [1])
+        with patch(
+            "src.evaluation.holdout.prepare_task_data_component",
+            return_value=splits,
+        ):
+            self.assertIs(
+                validate_holdout_manifest(
+                    frame=frame,
+                    manifest=manifest,
+                    task_name="binary_detection",
+                    config=config,
+                ),
+                splits,
+            )
+
+        with self.assertRaisesRegex(ValueError, "source dataset"):
+            validate_holdout_manifest(
+                frame=frame.assign(KPIs=[[{"RSRP": [9.0]}], [{"RSRP": [2.0]}]]),
+                manifest=manifest,
+                task_name="binary_detection",
+                config=config,
+            )
+        with self.assertRaisesRegex(ValueError, "configuration"):
+            validate_holdout_manifest(
+                frame=frame,
+                manifest=manifest,
+                task_name="binary_detection",
+                config={"seed": 8},
+            )
+        with patch(
+            "src.evaluation.holdout.prepare_task_data_component",
+            return_value=SimpleNamespace(
+                positions_test=np.asarray([0]),
+                y_test=np.asarray([1]),
+                groups_test=None,
+            ),
+        ):
+            with self.assertRaisesRegex(ValueError, "test split"):
+                validate_holdout_manifest(
+                    frame=frame,
+                    manifest=manifest,
+                    task_name="binary_detection",
+                    config=config,
+                )
+
+    def test_mlrun_json_values_accept_serialized_and_decoded_values(self) -> None:
+        self.assertEqual(_decode_json_value('["RSRP"]', "kpis"), ["RSRP"])
+        self.assertEqual(_decode_json_value(["RSRP"], "kpis"), ["RSRP"])
+        self.assertEqual(_decode_json_value('{"seed": 7}', "config"), {"seed": 7})
+        self.assertEqual(_decode_json_value({"seed": 7}, "config"), {"seed": 7})
+        with self.assertRaisesRegex(TypeError, "JSON string, object, or array"):
+            _decode_json_value(7, "config")
+        with self.assertRaisesRegex(ValueError, "valid JSON"):
+            _decode_json_value("{", "config")
+
+    def test_mlrun_model_uri_resolves_registered_model_file(self) -> None:
+        model_uri = "store://models/test/model:v1"
+        model_file = "C:/tmp/model_bundle.joblib"
+        artifact = SimpleNamespace(
+            task_name="binary_detection",
+            library_versions={"scikit_learn": SCIKIT_LEARN_VERSION},
+        )
+        mlrun_artifacts_module = SimpleNamespace(
+            get_model=unittest.mock.Mock(
+                return_value=(model_file, SimpleNamespace(), {})
+            )
+        )
+        with (
+            patch.dict(
+                "sys.modules",
+                {"mlrun.artifacts": mlrun_artifacts_module},
+            ),
+            patch(
+                "pipelines.mlrun_components.load_task_artifact",
+                return_value=artifact,
+            ) as load_artifact,
+        ):
+            from pipelines.mlrun_components import _resolve_model_artifact
+
+            result = _resolve_model_artifact(model_uri)
+
+        self.assertIs(result, artifact)
+        mlrun_artifacts_module.get_model.assert_called_once_with(
+            model_uri,
+            suffix=".joblib",
+        )
+        load_artifact.assert_called_once_with(model_file)
+
+    def test_mlrun_model_uri_rejects_scikit_learn_version_mismatch(self) -> None:
+        artifact = SimpleNamespace(
+            task_name="affected_kpis",
+            library_versions={"scikit_learn": "1.9.1"},
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            model_path = Path(temporary) / "model_bundle.joblib"
+            model_path.touch()
+            with (
+                patch(
+                    "pipelines.mlrun_components.load_task_artifact",
+                    return_value=artifact,
+                ),
+                patch("pipelines.mlrun_components.sklearn.__version__", "1.7.2"),
+            ):
+                from pipelines.mlrun_components import _resolve_model_artifact
+
+                with self.assertRaisesRegex(
+                    RuntimeError,
+                    "created with scikit-learn 1.9.1.*runtime uses 1.7.2",
+                ):
+                    _resolve_model_artifact(model_path)
+
+    def test_mlrun_batch_inference_logs_json_predictions(self) -> None:
+        class Context:
+            def __init__(self) -> None:
+                self.results = {}
+                self.artifacts = []
+                self.labels = {}
+
+            def set_label(self, key: str, value: str) -> None:
+                self.labels[key] = value
+
+            def log_result(self, key: str, value: object) -> None:
+                self.results[key] = value
+
+            def log_artifact(self, item: str, **kwargs: object) -> SimpleNamespace:
+                self.artifacts.append((item, kwargs))
+                self.artifact_payload = Path(kwargs["local_path"]).read_text(
+                    encoding="utf-8"
+                )
+                return SimpleNamespace(uri="store://test/predictions")
+
+        model = SimpleNamespace(task_name="binary_detection", model_name="random_forest")
+        prediction = SimpleNamespace(
+            positions=np.asarray([0, 2]),
+            predictions=np.asarray([1, 0]),
+        )
+        context = Context()
+        with (
+            patch(
+                "pipelines.mlrun_components._resolve_model_artifact",
+                return_value=model,
+            ),
+            patch(
+                "pipelines.mlrun_components.load_training_frame",
+                return_value=pd.DataFrame({"KPIs": [{}, {}, {}]}),
+            ),
+            patch(
+                "pipelines.mlrun_components.predict_task_component",
+                return_value=prediction,
+            ),
+        ):
+            result = batch_inference_component(
+                context,
+                dataset_name="example/dataset",
+                split="train",
+                model_uri="store://models/test/model",
+            )
+
+        self.assertEqual(result["prediction_count"], 2)
+        self.assertEqual(result["predictions_uri"], "store://test/predictions")
+        self.assertEqual(context.labels["task"], "binary_detection")
+        item, _ = context.artifacts[0]
+        self.assertEqual(item, "predictions")
+        payload = json.loads(context.artifact_payload)
+        self.assertEqual(
+            payload["predictions"],
+            [
+                {"position": 0, "prediction": 1},
+                {"position": 2, "prediction": 0},
+            ],
+        )
+
+    def test_mlrun_registration_logs_selected_bundle_and_holdout_provenance(self) -> None:
+        class Context:
+            def __init__(self) -> None:
+                self.results = {}
+                self.artifacts = []
+                self.models = []
+                self.labels = {}
+
+            def set_label(self, key: str, value: str) -> None:
+                self.labels[key] = value
+
+            def log_result(self, key: str, value: object) -> None:
+                self.results[key] = value
+
+            def log_model(self, **kwargs: object) -> SimpleNamespace:
+                self.models.append(kwargs)
+                return SimpleNamespace(uri="store://models/binary_detection:v1")
+
+            def log_artifact(self, item: str, **kwargs: object) -> SimpleNamespace:
+                self.artifacts.append((item, kwargs))
+                return SimpleNamespace(uri=f"store://artifacts/{item}:v1")
+
+        model = SimpleNamespace(
+            selected=True,
+            task_name="binary_detection",
+            model_name="random_forest",
+            cv_metrics={"f1_macro_mean": 0.8},
+            validation_metrics={"f1_macro": 0.75},
+            test_metrics=None,
+            model_parameters={"n_estimators": 20},
+            config={"project": {"seed": 7}, "model_selection": {}},
+        )
+        manifest = {
+            "task_name": "binary_detection",
+            "dataset_name": "example/dataset",
+            "source_split": "train",
+            "dataset_sha256": "abc123",
+            "project_config_sha256": config_fingerprint({"seed": 7}),
+            "code_revision": "a" * 40,
+            "test_positions": [5, 6],
+            "test_sample_count": 2,
+            "grouping_strategy": "overlapping_time_intervals",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            model_path = Path(temporary) / "model_bundle.joblib"
+            model_path.write_bytes(b"trusted test file")
+            comparison_path = Path(temporary) / "comparison.json"
+            comparison_path.write_text(
+                json.dumps(
+                    {
+                        "task_name": "binary_detection",
+                        "models": [
+                            {
+                                "model_name": "random_forest",
+                                "selected": True,
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            context = Context()
+            with patch(
+                "pipelines.mlrun_components.load_task_artifact",
+                return_value=model,
+            ):
+                result = register_model_component(
+                    context,
+                    model_path=str(model_path),
+                    comparison_path=str(comparison_path),
+                    holdout_manifest_json=manifest,
+                    dataset_name="example/dataset",
+                    source_split="train",
+                    code_revision="a" * 40,
+                    registration_tag="a" * 12 + "-20261107120000",
+                )
+
+        self.assertEqual(
+            result["model_uri"],
+            "store://models/binary_detection:v1",
+        )
+        self.assertEqual(
+            result["holdout_manifest_uri"],
+            "store://artifacts/binary_detection_holdout_manifest:v1",
+        )
+        self.assertEqual(context.models[0]["key"], "binary_detection")
+        self.assertEqual(context.models[0]["algorithm"], "random_forest")
+        self.assertEqual(context.models[0]["metrics"]["cv_f1_macro_mean"], 0.8)
+        self.assertNotIn("extra_data", context.models[0])
+        self.assertEqual(
+            context.models[0]["labels"]["code_revision"],
+            "a" * 12,
+        )
+        self.assertEqual(
+            [item for item, _ in context.artifacts],
+            ["binary_detection_holdout_manifest", "binary_detection_comparison"],
+        )
+        manifest_artifact = context.artifacts[0][1]
+        self.assertEqual(
+            json.loads(manifest_artifact["body"].decode("utf-8")),
+            manifest,
+        )
+
+    def test_mlrun_evaluation_scores_registered_model_without_training(self) -> None:
+        class Context:
+            def __init__(self) -> None:
+                self.results = {}
+                self.artifacts = []
+                self.labels = {}
+
+            def set_label(self, key: str, value: str) -> None:
+                self.labels[key] = value
+
+            def log_result(self, key: str, value: object) -> None:
+                self.results[key] = value
+
+            def log_artifact(self, item: str, **kwargs: object) -> SimpleNamespace:
+                self.artifacts.append((item, kwargs))
+                return SimpleNamespace(uri="store://test/evaluation")
+
+        groups_test = np.asarray(["scenario-a", "scenario-b"])
+        splits = TaskSplits(
+            task_name="binary_detection",
+            X_train=np.empty((1, 1, 1), dtype=object),
+            y_train=np.asarray([0]),
+            positions_train=np.asarray([0]),
+            X_validation=np.empty((1, 1, 1), dtype=object),
+            y_validation=np.asarray([1]),
+            positions_validation=np.asarray([1]),
+            X_test=np.empty((2, 1, 1), dtype=object),
+            y_test=np.asarray([0, 1]),
+            positions_test=np.asarray([2, 3]),
+            feature_channels=("RSRP",),
+            groups_test=groups_test,
+        )
+        model = SimpleNamespace(
+            task_name="binary_detection",
+            model_name="random_forest",
+            decision_thresholds=(0.5,),
+        )
+        prediction = SimpleNamespace(predictions=np.asarray([0, 1]))
+        context = Context()
+        frame = pd.DataFrame({"KPIs": [{}, {}, {}, {}]})
+        with (
+            patch(
+                "pipelines.mlrun_components._resolve_model_artifact",
+                return_value=model,
+            ),
+            patch(
+                "pipelines.mlrun_components.load_training_frame",
+                return_value=frame,
+            ),
+            patch(
+                "pipelines.mlrun_components._resolve_json_artifact",
+                return_value={
+                    "dataset_name": "example/dataset",
+                    "source_split": "train",
+                    "grouping_strategy": "overlapping_time_intervals",
+                    "dataset_sha256": "abc",
+                    "code_revision": "revision",
+                },
+            ),
+            patch(
+                "pipelines.mlrun_components.validate_holdout_manifest",
+                return_value=splits,
+            ) as prepare,
+            patch(
+                "pipelines.mlrun_components.predict_task_component",
+                return_value=prediction,
+            ) as predict,
+        ):
+            result = evaluate_registered_model_component(
+                context,
+                dataset_name="example/dataset",
+                split="train",
+                model_uri="store://models/test/model",
+                holdout_manifest_uri="store://artifacts/holdout",
+                project_config_json={},
+            )
+
+        self.assertEqual(result["sample_count"], 2)
+        self.assertEqual(result["group_count"], 2)
+        self.assertEqual(result["metrics"]["f1_macro"], 1.0)
+        self.assertEqual(context.results["test_f1_macro"], 1.0)
+        self.assertEqual(result["evaluation_uri"], "store://test/evaluation")
+        self.assertEqual(prepare.call_count, 1)
+        self.assertIs(prepare.call_args.kwargs["frame"], frame)
+        self.assertEqual(predict.call_count, 1)
+        self.assertEqual(context.artifacts[0][0], "evaluation")
+
+    def test_mlrun_source_rejects_embedded_credentials(self) -> None:
+        validate_source("git://github.com/example/project.git")
+        with self.assertRaisesRegex(ValueError, "credentials"):
+            validate_source("https://user:secret@example.com/project.git")
+        with self.assertRaisesRegex(ValueError, "query parameters"):
+            validate_source("https://example.com/project.zip?token=secret")
+
+    def test_selected_bundle_resolves_windows_path_from_linux(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact_root = Path(temporary) / "results" / "models"
+            model_path = (
+                artifact_root
+                / "binary_detection"
+                / "random_forest"
+                / "model_bundle.joblib"
+            )
+            model_path.parent.mkdir(parents=True)
+            model_path.write_bytes(b"model")
+            comparison_path = artifact_root / "binary_detection" / "comparison.json"
+            comparison_path.parent.mkdir(parents=True, exist_ok=True)
+            comparison_path.write_text(
+                json.dumps(
+                    {
+                        "task_name": "binary_detection",
+                        "models": [
+                            {
+                                "model_name": "random_forest",
+                                "selected": True,
+                                "artifact_path": (
+                                    "results\\\\models\\\\binary_detection\\\\"
+                                    "random_forest\\\\model_bundle.joblib"
+                                ),
+                            }
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            resolved_path, resolved_comparison, model_name = _selected_bundle(
+                artifact_root,
+                "binary_detection",
+            )
+
+        self.assertEqual(resolved_path, model_path.resolve())
+        self.assertEqual(resolved_comparison, comparison_path)
+        self.assertEqual(model_name, "random_forest")
+
+    def test_mlrun_registry_runs_registration_for_selected_local_bundle(self) -> None:
+        project = unittest.mock.Mock()
+        project.run_function.return_value = SimpleNamespace(
+            uid="registration-run",
+            outputs={"model_uri": "store://models/binary_detection:v1"},
+        )
+        mlrun_module = SimpleNamespace(
+            get_or_create_project=unittest.mock.Mock(return_value=project)
+        )
+        frame = pd.DataFrame({"KPIs": [{}]})
+        manifest = {
+            "task_name": "binary_detection",
+            "dataset_name": "example/dataset",
+            "source_split": "train",
+            "dataset_sha256": dataset_fingerprint(frame),
+            "project_config_sha256": config_fingerprint(
+                load_pipeline_config()
+            ),
+            "test_positions": [0],
+            "test_sample_count": 1,
+            "grouping_strategy": "stratified_samples",
+        }
+        with tempfile.TemporaryDirectory() as temporary:
+            comparison_path = Path(temporary) / "comparison.json"
+            comparison_path.write_text(
+                json.dumps(
+                    {
+                        "task_name": "binary_detection",
+                        "holdout_provenance": {
+                            "dataset_name": "example/dataset",
+                            "source_split": "train",
+                            **{
+                                key: manifest[key]
+                                for key in (
+                                "dataset_sha256",
+                                "project_config_sha256",
+                                "test_positions",
+                                "test_sample_count",
+                                "grouping_strategy",
+                                )
+                            },
+                        },
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with (
+                patch.dict("sys.modules", {"mlrun": mlrun_module}),
+                patch(
+                    "pipelines.mlrun_registry.load_training_frame",
+                    return_value=frame,
+                ),
+                patch(
+                    "pipelines.mlrun_registry._git_revision",
+                    return_value="a" * 40,
+                ),
+                patch(
+                    "pipelines.mlrun_registry._selected_bundle",
+                    return_value=(
+                        Path("selected.joblib"),
+                        comparison_path,
+                        "random_forest",
+                    ),
+                ),
+                patch(
+                    "pipelines.mlrun_registry.build_holdout_manifest",
+                    return_value=manifest,
+                ) as build_manifest,
+            ):
+                result = register_local_models(
+                    source="git://github.com/example/project.git",
+                    project_name="ina-test",
+                    dataset_name="example/dataset",
+                    source_split="train",
+                    artifact_directory=Path("models"),
+                    tasks=["binary_detection"],
+                )
+
+        self.assertEqual(result[0]["run_id"], "registration-run")
+        project.set_source.assert_called_once_with(
+            source="git://github.com/example/project.git",
+            pull_at_runtime=False,
+        )
+        self.assertEqual(
+            project.set_function.call_args.kwargs["handler"],
+            "register_model_component",
+        )
+        self.assertEqual(
+            project.run_function.call_args.args[0],
+            "ina-model-registration",
+        )
+        run_params = project.run_function.call_args.kwargs["params"]
+        self.assertEqual(run_params["dataset_name"], "example/dataset")
+        self.assertEqual(run_params["source_split"], "train")
+        self.assertEqual(
+            json.loads(run_params["holdout_manifest_json"]),
+            manifest,
+        )
+        self.assertIs(build_manifest.call_args.kwargs["frame"], frame)
+
+    def test_mlrun_batch_launcher_passes_registered_model_and_holdout(self) -> None:
+        project = unittest.mock.Mock()
+        project.run.return_value = SimpleNamespace(uid="evaluation-run")
+        mlrun_module = SimpleNamespace(
+            get_or_create_project=unittest.mock.Mock(return_value=project)
+        )
+        with patch.dict("sys.modules", {"mlrun": mlrun_module}):
+            run = register_and_run_batch_pipeline(
+                operation="evaluation",
+                project_name="ina-test",
+                dataset_name="example/dataset",
+                split="train",
+                model_uri="store://models/model:v1",
+                project_config={"seed": 7},
+                holdout_manifest_uri="store://artifacts/holdout:v1",
+                watch=False,
+            )
+
+        self.assertEqual(run.uid, "evaluation-run")
+        arguments = project.run.call_args.kwargs["arguments"]
+        self.assertEqual(arguments["model_uri"], "store://models/model:v1")
+        self.assertEqual(
+            arguments["holdout_manifest_uri"],
+            "store://artifacts/holdout:v1",
+        )
+        self.assertEqual(json.loads(arguments["project_config_json"]), {"seed": 7})
+        self.assertEqual(
+            project.run.call_args.kwargs["workflow_handler"],
+            "evaluation_pipeline",
+        )
+        self.assertTrue(project.run.call_args.kwargs["sync"])
+        with patch.dict("sys.modules", {"mlrun": mlrun_module}):
+            with self.assertRaisesRegex(ValueError, "holdout manifest"):
+                register_and_run_batch_pipeline(
+                    operation="evaluation",
+                    project_name="ina-test",
+                    dataset_name="example/dataset",
+                    split="train",
+                    model_uri="store://models/model:v1",
+                    project_config={},
+                    holdout_manifest_uri=None,
+                    watch=False,
+                )
+
     def test_preprocessing_fits_only_train_and_ignores_unknown_category(self) -> None:
         splits = TaskSplits(
             task_name="binary_detection",
@@ -362,6 +1080,8 @@ class PipelineComponentTests(unittest.TestCase):
                 model_config,
                 temporary_directory,
                 ["binary_detection"],
+                dataset_name="example/dataset",
+                source_split="train",
             )
             comparison_path = Path(temporary_directory) / "comparison.csv"
 
@@ -369,6 +1089,24 @@ class PipelineComponentTests(unittest.TestCase):
             self.assertEqual(len(results), 1)
             self.assertEqual(results[0]["task_name"], "binary_detection")
             self.assertTrue(results[0]["group_split"])
+            holdout = results[0]["holdout_provenance"]
+            self.assertEqual(holdout["dataset_name"], "example/dataset")
+            self.assertEqual(holdout["source_split"], "train")
+            self.assertEqual(
+                len(holdout["test_positions"]),
+                holdout["test_sample_count"],
+            )
+            task_comparison = json.loads(
+                (
+                    Path(temporary_directory)
+                    / "binary_detection"
+                    / "comparison.json"
+                ).read_text(encoding="utf-8")
+            )
+            self.assertEqual(
+                task_comparison["holdout_provenance"],
+                holdout,
+            )
             comparison = pd.read_csv(comparison_path)
             self.assertIn("cv_precision_macro_mean", comparison.columns)
             self.assertIn("cv_recall_macro_mean", comparison.columns)

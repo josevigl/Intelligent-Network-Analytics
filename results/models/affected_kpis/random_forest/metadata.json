@@ -214,7 +214,31 @@
       "selection": {
         "primary_metric": "f1_macro",
         "threshold_objective": "f1",
-        "threshold_fallback": 0.5
+        "threshold_fallback": 0.5,
+        "model_source_by_task": {
+          "anomaly_type": "cross_validation"
+        }
+      },
+      "features": {
+        "anomaly_type": {
+          "window_statistics": [
+            "mean",
+            "std",
+            "min",
+            "max",
+            "range",
+            "slope",
+            "q10",
+            "q25",
+            "median",
+            "q75",
+            "q90",
+            "first",
+            "last",
+            "delta",
+            "iqr"
+          ]
+        }
       },
       "models": {
         "binary_detection": {
@@ -267,9 +291,11 @@
             "estimator": "logistic_regression",
             "parameter_grid": {
               "C": [
+                0.01,
                 0.1,
                 1.0,
-                10.0
+                10.0,
+                100.0
               ],
               "class_weight": [
                 "balanced"
@@ -283,11 +309,17 @@
                 100
               ],
               "max_depth": [
-                12,
+                8,
                 null
               ],
               "min_samples_leaf": [
-                2
+                1,
+                4,
+                8
+              ],
+              "class_weight": [
+                "balanced",
+                "balanced_subsample"
               ]
             }
           },
@@ -295,11 +327,16 @@
             "estimator": "svm",
             "parameter_grid": {
               "C": [
-                0.5,
-                2.0
+                0.1,
+                1.0,
+                10.0
               ],
               "kernel": [
                 "rbf"
+              ],
+              "gamma": [
+                "scale",
+                0.1
               ],
               "class_weight": [
                 "balanced"
@@ -313,11 +350,24 @@
                 150
               ],
               "max_depth": [
-                4,
-                7
+                2,
+                4
               ],
               "learning_rate": [
-                0.05
+                0.03,
+                0.1
+              ],
+              "min_child_weight": [
+                1,
+                5
+              ],
+              "reg_lambda": [
+                1.0
+              ],
+              "sample_weight": [
+                null,
+                "sqrt_balanced",
+                "balanced"
               ]
             }
           }
@@ -464,5 +514,13 @@
     "recall_macro_std": 0.024577842694034624
   },
   "test_metrics": null,
-  "selected": false
+  "selected": false,
+  "summary_statistics": [
+    "mean",
+    "std",
+    "min",
+    "max",
+    "range",
+    "slope"
+  ]
 }

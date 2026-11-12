@@ -11,6 +11,10 @@ import yaml
 
 from pipelines.train import load_training_frame
 from src.config import load_pipeline_config
+from src.evaluation.holdout import (
+    config_fingerprint,
+    dataset_fingerprint,
+)
 from src.models.experiments import run_task_model_comparison
 from src.preprocessing.data import TASK_NAMES
 from src.preprocessing.pipeline import prepare_task_data_component
@@ -87,6 +91,8 @@ def run_model_comparison_pipeline(
     artifact_directory: str | Path,
     task_names: list[str] | tuple[str, ...] | None = None,
     evaluate_test: bool = True,
+    dataset_name: str | None = None,
+    source_split: str | None = None,
 ) -> list[dict[str, Any]]:
     selected_tasks = tuple(task_names or TASK_NAMES)
     unknown = set(selected_tasks) - set(TASK_NAMES)
@@ -98,6 +104,8 @@ def run_model_comparison_pipeline(
         raise ValueError("At least one task must be selected.")
 
     results = []
+    dataset_sha256 = dataset_fingerprint(frame)
+    project_config_sha256 = config_fingerprint(project_config)
     for task_name in selected_tasks:
         print(f"Preparing {task_name} data and leakage-safe splits...", flush=True)
         splits = prepare_task_data_component(frame, task_name, project_config)
@@ -119,6 +127,27 @@ def run_model_comparison_pipeline(
             artifact_directory,
             evaluate_test=evaluate_test,
         )
+        result["holdout_provenance"] = {
+            "dataset_name": dataset_name,
+            "source_split": source_split,
+            "dataset_sha256": dataset_sha256,
+            "project_config_sha256": project_config_sha256,
+            "test_positions": [
+                int(position) for position in splits.positions_test
+            ],
+            "test_sample_count": int(len(splits.y_test)),
+            "grouping_strategy": (
+                "overlapping_time_intervals"
+                if splits.groups_test is not None
+                else "stratified_samples"
+            ),
+        }
+        task_comparison_path = (
+            Path(artifact_directory) / task_name / "comparison.json"
+        )
+        with task_comparison_path.open("w", encoding="utf-8") as file:
+            json.dump(result, file, ensure_ascii=False, indent=2)
+            file.write("\n")
         results.append(result)
         print(
             f"Selected {result['selected_model']} for {task_name} "
@@ -200,6 +229,8 @@ def main() -> None:
         output_directory,
         args.tasks,
         evaluate_test=not args.skip_test,
+        dataset_name=args.dataset,
+        source_split=args.split,
     )
 
 

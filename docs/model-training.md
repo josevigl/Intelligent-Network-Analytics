@@ -37,6 +37,8 @@ preprocessor, parameters, and validation-calibrated threshold saved together.
 - `src/models/experiments.py`: fold-local preprocessing, CV search, validation
   comparison, threshold selection, final test evaluation, and artifact saving.
 - `pipelines/train_models.py`: end-to-end CLI and comparison CSV/JSON writer.
+- `pipelines/mlrun_components.py`, `pipelines/mlrun_workflow.py`, and
+  `pipelines/mlrun_registry.py`: MLRun registration, inference, and evaluation.
 - `src/artifacts.py` and `src/inference.py`: model bundle persistence and
   inference without refitting.
 - `notebooks/ModelComparison.ipynb`: per-objective CV/validation charts and the
@@ -104,3 +106,85 @@ there. The example uses the available source split as an inference batch.
 Open `notebooks/ModelComparison.ipynb` after training to compare CV and
 validation scores. Test scores are populated only for the selected model of
 each objective.
+
+## MLRun registry, inference, and evaluation
+
+Training and model selection remain local with `ina-train-models`. MLRun is
+used after training for model registration/versioning, run provenance, batch
+inference, and evaluation on the exact held-out partition used by training.
+Online deployment and monitoring are separate follow-up stages.
+
+Install the optional MLRun dependencies in a Linux or WSL2 environment that
+can access the MLRun API and artifact store. The MLRun extra includes S3
+support because MLRun stores registered model artifacts in the configured
+object store:
+
+```text
+python -m pip install -e ".[mlrun,data,models]"
+```
+
+First train locally. The default runs all four objectives; individual or
+multiple objectives can be selected as above. Then configure the two
+post-training workflows once. The source must point at a pushed revision
+containing the MLOps code; do not put credentials in the URL. The inference
+and evaluation functions and their workflow tasks request 1 GiB of memory
+and have a 4 GiB limit:
+
+```text
+ina-train-models
+ina-mlrun-setup --source "git://github.com/<owner>/<repository>.git#<branch>"
+```
+
+After changing resource settings, push the revision and rerun
+`ina-mlrun-setup` so the registered functions and workflow definitions are
+updated before resubmitting a failed workflow. The cluster must have enough
+allocatable memory on a node for the 1 GiB request; if it does not, use
+smaller configured resources or a larger-memory node.
+
+Register each selected local model bundle and its `comparison.json` metadata
+with MLRun. By default, all four objectives are registered from
+`results/models`; repeat `--task` to limit registration:
+
+```text
+ina-mlrun-register --source "git://github.com/<owner>/<repository>.git#<branch>"
+ina-mlrun-register --source "git://github.com/<owner>/<repository>.git#<branch>" --task anomaly_type
+```
+
+Registration only accepts the candidate marked selected by the local
+comparison results. The model artifact includes its fitted preprocessing and
+target transformations. MLRun also stores the comparison, CV/validation
+metrics, source dataset and split, code revision, and a holdout manifest. The
+manifest identifies the exact test positions and fingerprints the dataset and
+configuration; evaluation fails if these no longer match.
+
+In the MLRun UI, copy the registered model URI and the corresponding
+`<task>_holdout_manifest` artifact URI. Use the model URI to run batch
+inference on the available source `train` split:
+
+```text
+ina-mlrun-infer --model-uri "<registered-model-uri>"
+```
+
+The inference component resolves this registry URI to the stored `.joblib`
+bundle through MLRun's model-artifact API before loading it. The launcher
+synchronizes registered functions before submitting the workflow so new
+function resources are used by newly submitted runs. Training and inference
+use the same pinned scikit-learn version because joblib model bundles are not
+portable across arbitrary scikit-learn versions.
+
+Evaluate the registered model on its recorded held-out test partition:
+
+```text
+ina-mlrun-evaluate \
+  --model-uri "<registered-model-uri>" \
+  --holdout-manifest-uri "<registered-holdout-manifest-uri>"
+```
+
+The evaluation command defaults to the same `AliMaatouk/TelecomTS` train split
+and `config.yaml`; provide matching `--dataset`, `--split`, or `--config` values
+if those differed at registration. Do not retrain between registration and
+evaluation or change the data/configuration: the manifest check intentionally
+rejects mismatches. Configure a serving runtime and monitoring stack
+separately when the registry, inference, and evaluation flow has been verified.
+Inference and evaluation load the dataset in their respective MLRun function;
+the full DataFrame is not serialized as an intermediate pipeline parameter.

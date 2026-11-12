@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: nexus5g-public-demo
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: INA_HOST
+        value: 0.0.0.0
+      - key: INA_PUBLIC_DEMO
+        value: "true"

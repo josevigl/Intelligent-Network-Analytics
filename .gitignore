@@ -8,3 +8,19 @@ __pycache__/
 *.pyd
 .pytest_cache/
 .mypy_cache/
+
+# Frontend build and package artifacts
+web/node_modules/
+web/dist/
+
+# Generated Python package metadata
+*.egg-info/
+
+# Local application state and browser-test output
+/results/app/
+.playwright-mcp/
+
+# Local environment variables (keep only documented examples)
+.env
+.env.*
+!.env.example
