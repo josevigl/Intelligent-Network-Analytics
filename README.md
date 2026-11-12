@@ -5,6 +5,10 @@
 </p>
 
 <p align="center">
+  <a href="https://nexus5g-public-demo.onrender.com/">Open the live demo</a>
+</p>
+
+<p align="center">
   <a href="https://huggingface.co/datasets/AliMaatouk/TelecomTS"><img alt="Dataset: TelecomTS" src="https://img.shields.io/badge/Dataset-TelecomTS-004D98"></a>
   <img alt="Python 3.10+" src="https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white">
   <img alt="React 18" src="https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=111827">
